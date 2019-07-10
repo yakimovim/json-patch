@@ -10,7 +10,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
             if(path.IsRootPointer)
                 return new JRootPointer();
 
-            foreach ((string referenceToken, int index) in path.GetReferenceTokensExceptLast())
+            foreach (JsonPointer.ReferenceToken referenceToken in path.GetReferenceTokensExceptLast())
             {
                 switch (token)
                 {
@@ -21,26 +21,26 @@ namespace EdlinSoftware.JsonPatch.Pointers
                         if (int.TryParse(referenceToken, out var arrayIndex))
                         {
                             if (arrayIndex < 0 || arrayIndex >= jArray.Count)
-                                throw new InvalidOperationException($"Unable to find index '{arrayIndex}' in an array at '{path.GetParentPointer(index)}'.");
+                                throw new InvalidOperationException($"Unable to find index '{arrayIndex}' in an array at '{referenceToken.GetParentPointer()}'.");
                             token = jArray[arrayIndex];
                         }
                         else if (referenceToken == "-")
                         {
                             if (jArray.Count == 0)
-                                throw new InvalidOperationException($"Unable to find last element in an empty array at '{path.GetParentPointer(index)}'.");
+                                throw new InvalidOperationException($"Unable to find last element in an empty array at '{referenceToken.GetParentPointer()}'.");
                             token = jArray[jArray.Count - 1];
                         }
                         else
                         {
-                            throw new InvalidOperationException($"Unable to find '{referenceToken}' property of an array at '{path.GetParentPointer(index)}'.");
+                            throw new InvalidOperationException($"Unable to find '{referenceToken}' property of an array at '{referenceToken.GetParentPointer()}'.");
                         }
                         break;
                     default:
-                        throw new InvalidOperationException($"Value at '{path.GetParentPointer(index)}' is of primitive type '{token.Type}' and can't participate in a pointer.");
+                        throw new InvalidOperationException($"Value at '{referenceToken.GetParentPointer()}' is of primitive type '{token.Type}' and can't participate in a pointer.");
                 }
 
                 if (token == null)
-                    throw new InvalidOperationException($"Unable to find path '{path.GetParentPointer(index + 1)}'.");
+                    throw new InvalidOperationException($"Unable to find path '{referenceToken.GetPointer()}'.");
             }
 
             switch (token)
@@ -62,11 +62,33 @@ namespace EdlinSoftware.JsonPatch.Pointers
         private readonly JArray _jArray;
         private readonly string _pathPart;
 
-        public JArrayPointer(JArray jArray, string pathPart)
+        public JArrayPointer(JArray jArray, JsonPointer.ReferenceToken pathPart)
         {
             _jArray = jArray ?? throw new ArgumentNullException(nameof(jArray));
             _pathPart = pathPart ?? throw new ArgumentNullException(nameof(pathPart));
+
+            if (_pathPart != "-")
+            {
+                if(!int.TryParse(_pathPart, out var arrayIndex))
+                    throw new InvalidOperationException($"Unable to find '{_pathPart}' property of an array at '{pathPart.GetParentPointer()}'.");
+
+                if (arrayIndex < 0 || arrayIndex > _jArray.Count)
+                    throw new InvalidOperationException($"Unable to find index '{arrayIndex}' in an array at '{pathPart.GetParentPointer()}'.");
+            }
         }
+
+        public void SetValue(object value)
+        {
+            if (_pathPart == "-")
+            {
+                _jArray.Add(value.GetJToken());
+            }
+            else if (int.TryParse(_pathPart, out var arrayIndex))
+            {
+                _jArray.Insert(arrayIndex, value.GetJToken());
+            }
+        }
+
 
         public void Deconstruct(out JArray jArray, out string pathPart)
         {
@@ -80,10 +102,15 @@ namespace EdlinSoftware.JsonPatch.Pointers
         private readonly JObject _jObject;
         private readonly string _pathPart;
 
-        public JObjectPointer(JObject jObject, string pathPart)
+        public JObjectPointer(JObject jObject, JsonPointer.ReferenceToken pathPart)
         {
             _jObject = jObject ?? throw new ArgumentNullException(nameof(jObject));
             _pathPart = pathPart ?? throw new ArgumentNullException(nameof(pathPart));
+        }
+
+        public void SetValue(object value)
+        {
+            _jObject[_pathPart] = value.GetJToken();
         }
 
         public void Deconstruct(out JObject jObject, out string pathPart)

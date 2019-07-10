@@ -48,14 +48,14 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JArray jArray = JArray.Parse("[]");
 
-            var pointer = JTokenPointer.Get(jArray, "/3");
+            var pointer = JTokenPointer.Get(jArray, "/0");
 
             var jArrayPointer = pointer.ShouldBeOfType<JArrayPointer>();
 
             var (jArr, pathPart) = jArrayPointer;
 
             jArray.ShouldBeSameAs(jArr);
-            pathPart.ShouldBe("3");
+            pathPart.ShouldBe("0");
         }
 
         [Fact]
@@ -132,13 +132,27 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         }
 
         [Fact]
-        public void PointerToAbsentArrayIndex()
+        public void PointerToAbsentArrayIndex_InTheMiddleOfPath()
         {
             JArray jArray = JArray.Parse("[ {}, {} ]");
 
             var exception = Should.Throw<InvalidOperationException>(() =>
             {
                 JTokenPointer.Get(jArray, "/4/var");
+            });
+
+            exception.Message.ShouldContain("''");
+            exception.Message.ShouldContain("'4'");
+        }
+
+        [Fact]
+        public void PointerToAbsentArrayIndex_InTheEndOfPath()
+        {
+            JArray jArray = JArray.Parse("[ {}, {} ]");
+
+            var exception = Should.Throw<InvalidOperationException>(() =>
+            {
+                JTokenPointer.Get(jArray, "/4");
             });
 
             exception.Message.ShouldContain("''");

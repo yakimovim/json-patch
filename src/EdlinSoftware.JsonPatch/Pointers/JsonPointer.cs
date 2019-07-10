@@ -8,22 +8,51 @@ namespace EdlinSoftware.JsonPatch.Pointers
     /// <summary>
     /// Represents JSON pointer (https://tools.ietf.org/html/rfc6901).
     /// </summary>
-    public class JsonPointer : IEnumerable<string>
+    public class JsonPointer : IEnumerable<JsonPointer.ReferenceToken>
     {
+        public sealed class ReferenceToken
+        {
+            private readonly JsonPointer _pointer;
+            private readonly int _index;
+
+            internal ReferenceToken(JsonPointer pointer, int index)
+            {
+                _pointer = pointer ?? throw new ArgumentNullException(nameof(pointer));
+                _index = index;
+            }
+
+            public override string ToString() => _pointer._referenceTokens[_index];
+
+            /// <summary>
+            /// Returns JSON pointer ending on the previous reference token. 
+            /// </summary>
+            public JsonPointer GetParentPointer() => _pointer.GetParentPointer(_index);
+
+            /// <summary>
+            /// Returns JSON pointer ending on this reference token. 
+            /// </summary>
+            public JsonPointer GetPointer() => _pointer.GetParentPointer(_index + 1);
+
+            public static implicit operator string(ReferenceToken referenceToken)
+            {
+                return referenceToken.ToString();
+            }
+        }
+
         private static readonly string[] RootPointer = new string[0];
 
         private readonly IReadOnlyList<string> _referenceTokens;
 
         public bool IsRootPointer => (_referenceTokens.Count == 0);
 
-        public string LastReferenceToken
+        public ReferenceToken LastReferenceToken
         {
             get
             {
                 if(IsRootPointer)
                     throw new InvalidOperationException("Root pointer does not have last reference token.");
 
-                return _referenceTokens[_referenceTokens.Count - 1];
+                return new ReferenceToken(this, _referenceTokens.Count - 1);
             }
         }
 
@@ -61,20 +90,21 @@ namespace EdlinSoftware.JsonPatch.Pointers
                 .Replace("~0", "~");
         }
 
-        public IEnumerator<string> GetEnumerator() => _referenceTokens.GetEnumerator();
+        public IEnumerator<ReferenceToken> GetEnumerator() => Enumerable
+            .Range(0, _referenceTokens.Count)
+            .Select(i => new ReferenceToken(this, i))
+            .GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public IEnumerable<(string referenceToken, int index)> GetReferenceTokensExceptLast()
+        public IEnumerable<ReferenceToken> GetReferenceTokensExceptLast()
         {
             if(IsRootPointer)
                 throw new InvalidOperationException("Root pointer does not have last reference token.");
 
             for (int i = 0; i < _referenceTokens.Count - 1; i++)
             {
-                var index = i;
-
-                yield return (_referenceTokens[index], index);
+                yield return new ReferenceToken(this, i);
             }
         }
 
@@ -100,7 +130,6 @@ namespace EdlinSoftware.JsonPatch.Pointers
 
             return GetParentPointer(_referenceTokens.Count);
         }
-
 
         public static implicit operator JsonPointer(string jsonPointer)
         {

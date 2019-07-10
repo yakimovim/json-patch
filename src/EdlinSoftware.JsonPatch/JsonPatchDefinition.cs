@@ -1,10 +1,37 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using EdlinSoftware.JsonPatch.Pointers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace EdlinSoftware.JsonPatch
 {
+    using static JsonOperations;
+
+    internal enum JsonPatchTypes
+    {
+        Add,
+        Remove,
+        Replace,
+        Move,
+        Copy,
+        Test
+    }
+
+    [AttributeUsage(AttributeTargets.Class)]
+    internal class PatchTypeAttribute : Attribute
+    {
+        public JsonPatchTypes PatchType { get; }
+
+        public PatchTypeAttribute(JsonPatchTypes patchType)
+        {
+            PatchType = patchType;
+        }
+    }
+
+
     /// <summary>
     /// Visitor interface for <see cref="JsonPatchDefinition"/> class.
     /// </summary>
@@ -35,8 +62,28 @@ namespace EdlinSoftware.JsonPatch
         /// <param name="visitor">Visitor.</param>
         /// <exception cref="ArgumentNullException">Visitor should not be null.</exception>
         public abstract void Visit(IJsonPatchDefinitionVisitor visitor);
+
+        /// <summary>
+        /// Writes this object to JSON.
+        /// </summary>
+        /// <param name="writer">JSON writer.</param>
+        /// <param name="serializer">JSON serializer.</param>
+        internal abstract void WriteToJson(JsonWriter writer, JsonSerializer serializer);
+
+        /// <summary>
+        /// Fills properties of this object from JSON.
+        /// </summary>
+        /// <param name="jObject">JSON object.</param>
+        internal abstract void FillFromJson(JObject jObject);
+
+        /// <summary>
+        /// Applies this patch to the token.
+        /// </summary>
+        /// <param name="token">JSON token.</param>
+        internal abstract void Apply(ref JToken token);
     }
 
+    [PatchType(JsonPatchTypes.Add)]
     public sealed class JsonPatchAddDefinition : JsonPatchDefinition
     {
         /// <summary>
@@ -50,41 +97,88 @@ namespace EdlinSoftware.JsonPatch
             if (visitor == null) throw new ArgumentNullException(nameof(visitor));
             visitor.VisitAdd(Path, Value);
         }
+
+        /// <inheritdoc />
+        internal override void WriteToJson(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("op");
+            writer.WriteValue("add");
+            writer.WritePropertyName("path");
+            writer.WriteValue(Path.ToString());
+            writer.WritePropertyName("value");
+            serializer.Serialize(writer, Value);
+            writer.WriteEndObject();
+        }
+
+        /// <inheritdoc />
+        internal override void FillFromJson(JObject jObject)
+        {
+            Path = GetMandatoryPropertyValue<string>(jObject, "path");
+            Value = jObject.GetValue("value");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var pointer = JTokenPointer.Get(token, Path);
+
+            switch (pointer)
+            {
+                case JRootPointer _:
+                {
+                    token = Value.GetJToken();
+                    break;
+                }
+                case JObjectPointer jObjectPointer:
+                {
+                    jObjectPointer.SetValue(Value);
+                    break;
+                }
+                case JArrayPointer jArrayPointer:
+                {
+                    jArrayPointer.SetValue(Value);
+                    break;
+                }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
     }
 
     public sealed class JsonPatchDefinitionConverter : JsonConverter<JsonPatchDefinition>
     {
-        private sealed class JsonPatchDefinitionConverterWriter : IJsonPatchDefinitionVisitor
+        private static readonly IReadOnlyDictionary<JsonPatchTypes, Type> KnownJsonPatchTypes;
+
+        static JsonPatchDefinitionConverter()
         {
-            private readonly JsonWriter _writer;
-            private readonly JsonSerializer _serializer;
+            var jsonPatchBaseType = typeof(JsonPatchDefinition);
 
-            public JsonPatchDefinitionConverterWriter(
-                JsonWriter writer,
-                JsonSerializer serializer)
-            {
-                _writer = writer ?? throw new ArgumentNullException(nameof(writer));
-                _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-            }
-
-            public void VisitAdd(JsonPointer path, object value)
-            {
-                _writer.WriteStartObject();
-                _writer.WritePropertyName("op");
-                _writer.WriteValue("add");
-                _writer.WritePropertyName("path");
-                _writer.WriteValue(path.ToString());
-                _writer.WritePropertyName("value");
-                _serializer.Serialize(_writer, value);
-                _writer.WriteEndObject();
-            }
+            KnownJsonPatchTypes = jsonPatchBaseType
+                .GetTypeInfo()
+                .Assembly
+                .DefinedTypes
+                .Where(t => t.IsSubclassOf(jsonPatchBaseType))
+                .Where(t => !t.IsAbstract)
+                .Select(t => new
+                {
+                    Type = t,
+                    Attribute = t.GetCustomAttribute<PatchTypeAttribute>()
+                })
+                .Where(t => t.Attribute != null)
+                .Select(t => new
+                {
+                    t.Type,
+                    t.Attribute.PatchType
+                })
+                .ToDictionary(t => t.PatchType, t => t.Type.AsType());
         }
 
         public override void WriteJson(JsonWriter writer, JsonPatchDefinition value, JsonSerializer serializer)
         {
             if (value == null) throw new ArgumentNullException(nameof(value), "Can't serialize null patch definitions.");
 
-            value.Visit(new JsonPatchDefinitionConverterWriter(writer, serializer));
+            value.WriteToJson(writer, serializer);
         }
 
         public override JsonPatchDefinition ReadJson(JsonReader reader, Type objectType, JsonPatchDefinition existingValue,
@@ -101,26 +195,27 @@ namespace EdlinSoftware.JsonPatch
 
             var operation = GetMandatoryPropertyValue<string>(patchDefinitionJObject, "op") ?? "";
 
-            switch (operation.ToLowerInvariant())
-            {
-                case "add":
-                    {
-                        return new JsonPatchAddDefinition
-                        {
-                            Path = GetMandatoryPropertyValue<string>(patchDefinitionJObject, "path"),
-                            Value = patchDefinitionJObject.GetValue("value")
-                        };
-                    }
-                default:
-                    throw new InvalidOperationException($"Unknown value of 'op' property: '{operation}'");
-            }
-        }
+            var patchType = (JsonPatchTypes) Enum.Parse(typeof(JsonPatchTypes), operation, ignoreCase: true);
+            if(!Enum.IsDefined(typeof(JsonPatchTypes), patchType))
+                throw new InvalidOperationException($"Unknown value of 'op' property: '{operation}'");
 
-        private T GetMandatoryPropertyValue<T>(JObject patchDefinitionJObject, string propertyName)
+            if(!KnownJsonPatchTypes.TryGetValue(patchType, out var jsonPatchType))
+                throw new InvalidOperationException($"Patch operation '{operation}' is not supported");
+
+            var jsonPatchDefinition = (JsonPatchDefinition) Activator.CreateInstance(jsonPatchType);
+            jsonPatchDefinition.FillFromJson(patchDefinitionJObject);
+            return jsonPatchDefinition;
+        }
+    }
+
+    internal static class JsonOperations
+    {
+        public static T GetMandatoryPropertyValue<T>(JObject patchDefinitionJObject, string propertyName)
         {
             if (!patchDefinitionJObject.ContainsKey(propertyName)) throw new InvalidOperationException($"Patch definition must contain '{propertyName}' property");
 
             return patchDefinitionJObject.Value<T>(propertyName);
         }
     }
+
 }
