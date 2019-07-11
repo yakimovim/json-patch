@@ -151,5 +151,42 @@ namespace EdlinSoftware.JsonPatch.Tests
             output.ShouldBeJson(expectedJson);
         }
 
+        public static IEnumerable<object[]> GetCopyPatchData()
+        {
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", "/boo", "{ \"var\": 5, \"boo\": 5 }" };
+            yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "/var", "/boo", "{ \"var\": 5, \"boo\": 5 }" };
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", "", "5" };
+            yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "/var", "", "5" };
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "", "/bar", "{ \"var\": 5, \"bar\": { \"var\": 5 } }" };
+            yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "", "/bar", "{ \"var\": 5, \"bar\": { \"var\": 5 } }" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", "/-", "[1, 2, 3, 2]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/0", "/1", "[1, 1, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", "/-", "[1, 2, 3, 2]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/0", "/1", "[1, 1, 2, 3]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", "", "2" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", "", "2" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "", "/2", "[1, 2, [1, 2, 3], 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "", "/2", "[1, 2, [1, 2, 3], 3]" };
+            yield return new object[] { new { Name = "Andrey" }, "/Name", "/FirstName", "{\"Name\":\"Andrey\",\"FirstName\":\"Andrey\"}" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetCopyPatchData))]
+        public void Copy(object input, string from, string path, string expectedJson)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchCopyDefinition
+                {
+                    Path = path,
+                    From = from
+                }
+            };
+
+            var output = Patch(input, patchDefinitions);
+
+            output.ShouldBeJson(expectedJson);
+        }
+
     }
 }

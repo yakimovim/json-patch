@@ -14,7 +14,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             var actualJson = actualToken.ToString();
             expectedJson = JToken.Parse(expectedJson).ToString();
 
-            actualJson.ShouldBe(expectedJson);
+            JToken.DeepEquals(actualJson, expectedJson).ShouldBeTrue();
         }
 
         public static void ShouldBe(this JsonPointer jsonPointer, string expectedValue)

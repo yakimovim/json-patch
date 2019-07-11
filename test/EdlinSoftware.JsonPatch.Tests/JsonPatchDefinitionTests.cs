@@ -99,6 +99,15 @@ namespace EdlinSoftware.JsonPatch.Tests
                 },
                 "{\"op\":\"move\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}"
             };
+            yield return new object[]
+            {
+                new JsonPatchCopyDefinition()
+                {
+                    From = "/foo/bar",
+                    Path = "/var/boo"
+                },
+                "{\"op\":\"copy\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}"
+            };
         }
 
         [Theory]
@@ -198,6 +207,19 @@ namespace EdlinSoftware.JsonPatch.Tests
             var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
 
             var patch = jsonPatch.ShouldBeOfType<JsonPatchMoveDefinition>();
+
+            patch.Path.ShouldBe("/var/boo");
+            patch.From.ShouldBe("/foo/bar");
+        }
+
+        [Fact]
+        public void Deserialize_CopyPatch()
+        {
+            var json = "{\"op\":\"copy\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}";
+
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchCopyDefinition>();
 
             patch.Path.ShouldBe("/var/boo");
             patch.From.ShouldBe("/foo/bar");

@@ -207,22 +207,22 @@ namespace EdlinSoftware.JsonPatch
             switch (pointer)
             {
                 case JRootPointer _:
-                {
-                    token = Value.GetJToken();
-                    break;
-                }
+                    {
+                        token = Value.GetJToken();
+                        break;
+                    }
                 case JObjectPointer jObjectPointer:
-                {
-                    jObjectPointer.RemoveValue();
-                    jObjectPointer.SetValue(Value);
-                    break;
-                }
+                    {
+                        jObjectPointer.RemoveValue();
+                        jObjectPointer.SetValue(Value);
+                        break;
+                    }
                 case JArrayPointer jArrayPointer:
-                {
-                    jArrayPointer.RemoveValue();
-                    jArrayPointer.SetValue(Value);
-                    break;
-                }
+                    {
+                        jArrayPointer.RemoveValue();
+                        jArrayPointer.SetValue(Value);
+                        break;
+                    }
                 default:
                     throw new InvalidOperationException("Unknown type of path pointer.");
             }
@@ -235,7 +235,7 @@ namespace EdlinSoftware.JsonPatch
         /// <summary>
         /// JSON pointer to the place to take value from.
         /// </summary>
-        public JsonPointer From{ get; set; }
+        public JsonPointer From { get; set; }
 
         /// <inheritdoc />
         protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
@@ -264,20 +264,20 @@ namespace EdlinSoftware.JsonPatch
             switch (toPointer)
             {
                 case JRootPointer _:
-                {
-                    token = tokenToMove;
-                    break;
-                }
+                    {
+                        token = tokenToMove;
+                        break;
+                    }
                 case JObjectPointer jObjectPointer:
-                {
-                    jObjectPointer.SetValue(tokenToMove);
-                    break;
-                }
+                    {
+                        jObjectPointer.SetValue(tokenToMove);
+                        break;
+                    }
                 case JArrayPointer jArrayPointer:
-                {
-                    jArrayPointer.SetValue(tokenToMove);
-                    break;
-                }
+                    {
+                        jArrayPointer.SetValue(tokenToMove);
+                        break;
+                    }
                 default:
                     throw new InvalidOperationException("Unknown type of path pointer.");
             }
@@ -288,19 +288,92 @@ namespace EdlinSoftware.JsonPatch
             switch (fromPointer)
             {
                 case JObjectPointer jObjectPointer:
-                {
-                    var token = jObjectPointer.GetValue();
-                    jObjectPointer.RemoveValue();
-                    return token;
-                }
+                    {
+                        var token = jObjectPointer.GetValue();
+                        jObjectPointer.RemoveValue();
+                        return token;
+                    }
                 case JArrayPointer jArrayPointer:
-                {
-                    var token = jArrayPointer.GetValue();
-                    jArrayPointer.RemoveValue();
-                    return token;
-                }
+                    {
+                        var token = jArrayPointer.GetValue();
+                        jArrayPointer.RemoveValue();
+                        return token;
+                    }
                 default:
                     throw new InvalidOperationException("Can't move JSON");
+            }
+        }
+    }
+
+    [PatchType(JsonPatchTypes.Copy)]
+    public sealed class JsonPatchCopyDefinition : JsonPatchDefinition
+    {
+        /// <summary>
+        /// JSON pointer to the place to take value from.
+        /// </summary>
+        public JsonPointer From { get; set; }
+
+        /// <inheritdoc />
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WritePropertyName("from");
+            writer.WriteValue(From.ToString());
+        }
+
+        /// <inheritdoc />
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
+        {
+            From = GetMandatoryPropertyValue<string>(jObject, "from");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var fromPointer = JTokenPointer.Get(token, From);
+            var toPointer = JTokenPointer.Get(token, Path);
+
+            var tokenToCopy = GetSourceTokenCopy(token, fromPointer);
+
+            switch (toPointer)
+            {
+                case JRootPointer _:
+                    {
+                        token = tokenToCopy;
+                        break;
+                    }
+                case JObjectPointer jObjectPointer:
+                    {
+                        jObjectPointer.SetValue(tokenToCopy);
+                        break;
+                    }
+                case JArrayPointer jArrayPointer:
+                    {
+                        jArrayPointer.SetValue(tokenToCopy);
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+
+        private JToken GetSourceTokenCopy(JToken rootToken, JTokenPointer fromPointer)
+        {
+            switch (fromPointer)
+            {
+                case JRootPointer _:
+                    {
+                        return rootToken.DeepClone();
+                    }
+                case JObjectPointer jObjectPointer:
+                    {
+                        return jObjectPointer.GetValue().DeepClone();
+                    }
+                case JArrayPointer jArrayPointer:
+                    {
+                        return jArrayPointer.GetValue().DeepClone();
+                    }
+                default:
+                    throw new InvalidOperationException("Can't copy JSON");
             }
         }
     }
