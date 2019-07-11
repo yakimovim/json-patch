@@ -77,18 +77,41 @@ namespace EdlinSoftware.JsonPatch.Pointers
             }
         }
 
+        public JToken GetValue()
+        {
+            var arrayIndex = _pathPart == "-"
+                ? _jArray.Count - 1
+                : int.Parse(_pathPart);
+
+            if (arrayIndex < 0 || arrayIndex >= _jArray.Count)
+                throw new InvalidOperationException($"Unable to get absent '{_pathPart}' element from an array.");
+
+            return _jArray[arrayIndex];
+        }
+
         public void SetValue(object value)
         {
             if (_pathPart == "-")
             {
                 _jArray.Add(value.GetJToken());
             }
-            else if (int.TryParse(_pathPart, out var arrayIndex))
+            else
             {
-                _jArray.Insert(arrayIndex, value.GetJToken());
+                _jArray.Insert(int.Parse(_pathPart), value.GetJToken());
             }
         }
 
+        public void RemoveValue()
+        {
+            var arrayIndex = _pathPart == "-"
+                ? _jArray.Count - 1
+                : int.Parse(_pathPart);
+
+            if(arrayIndex < 0 || arrayIndex >= _jArray.Count)
+                throw new InvalidOperationException($"Unable to remove absent '{_pathPart}' element from an array.");
+
+            _jArray.RemoveAt(arrayIndex);
+        }
 
         public void Deconstruct(out JArray jArray, out string pathPart)
         {
@@ -108,9 +131,25 @@ namespace EdlinSoftware.JsonPatch.Pointers
             _pathPart = pathPart ?? throw new ArgumentNullException(nameof(pathPart));
         }
 
+        public JToken GetValue()
+        {
+            if (!_jObject.ContainsKey(_pathPart))
+                throw new InvalidOperationException($"Unable to get absent value of '{_pathPart}' key from an object.");
+
+            return _jObject[_pathPart];
+        }
+
         public void SetValue(object value)
         {
             _jObject[_pathPart] = value.GetJToken();
+        }
+
+        public void RemoveValue()
+        {
+            if(!_jObject.ContainsKey(_pathPart))
+                throw new InvalidOperationException($"Unable to remove absent '{_pathPart}' key from an object.");
+
+            _jObject.Remove(_pathPart);
         }
 
         public void Deconstruct(out JObject jObject, out string pathPart)

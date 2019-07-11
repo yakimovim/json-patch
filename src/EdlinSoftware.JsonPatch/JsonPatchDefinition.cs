@@ -31,20 +31,6 @@ namespace EdlinSoftware.JsonPatch
         }
     }
 
-
-    /// <summary>
-    /// Visitor interface for <see cref="JsonPatchDefinition"/> class.
-    /// </summary>
-    public interface IJsonPatchDefinitionVisitor
-    {
-        /// <summary>
-        /// Visits add patch definition.
-        /// </summary>
-        /// <param name="path">Path to add to.</param>
-        /// <param name="value">Value to add.</param>
-        void VisitAdd(JsonPointer path, object value);
-    }
-
     /// <summary>
     /// Represents some Json patch definition.
     /// </summary>
@@ -57,24 +43,53 @@ namespace EdlinSoftware.JsonPatch
         public JsonPointer Path { get; set; }
 
         /// <summary>
-        /// Implementation of Visitor pattern.
-        /// </summary>
-        /// <param name="visitor">Visitor.</param>
-        /// <exception cref="ArgumentNullException">Visitor should not be null.</exception>
-        public abstract void Visit(IJsonPatchDefinitionVisitor visitor);
-
-        /// <summary>
         /// Writes this object to JSON.
         /// </summary>
         /// <param name="writer">JSON writer.</param>
         /// <param name="serializer">JSON serializer.</param>
-        internal abstract void WriteToJson(JsonWriter writer, JsonSerializer serializer);
+        internal void WriteToJson(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("op");
+            writer.WriteValue(GetOperationName());
+            writer.WritePropertyName("path");
+            writer.WriteValue(Path.ToString());
+            WriteAdditionalJsonProperties(writer, serializer);
+            writer.WriteEndObject();
+        }
+
+        private string GetOperationName()
+        {
+            return GetType()
+                .GetTypeInfo()
+                .GetCustomAttribute<PatchTypeAttribute>()
+                .PatchType
+                .ToString()
+                .ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// Writes additional properties (except 'op' and 'path') of this object to JSON.
+        /// </summary>
+        /// <param name="writer">JSON writer.</param>
+        /// <param name="serializer">JSON serializer.</param>
+        protected virtual void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer) { }
 
         /// <summary>
         /// Fills properties of this object from JSON.
         /// </summary>
         /// <param name="jObject">JSON object.</param>
-        internal abstract void FillFromJson(JObject jObject);
+        internal void FillFromJson(JObject jObject)
+        {
+            Path = GetMandatoryPropertyValue<string>(jObject, "path");
+            FillAdditionalPropertiesFromJson(jObject);
+        }
+
+        /// <summary>
+        /// Fills additional (except <see cref="Path"/>) properties of this object from JSON.
+        /// </summary>
+        /// <param name="jObject">JSON object.</param>
+        protected virtual void FillAdditionalPropertiesFromJson(JObject jObject) { }
 
         /// <summary>
         /// Applies this patch to the token.
@@ -92,29 +107,95 @@ namespace EdlinSoftware.JsonPatch
         public object Value { get; set; }
 
         /// <inheritdoc />
-        public override void Visit(IJsonPatchDefinitionVisitor visitor)
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
         {
-            if (visitor == null) throw new ArgumentNullException(nameof(visitor));
-            visitor.VisitAdd(Path, Value);
-        }
-
-        /// <inheritdoc />
-        internal override void WriteToJson(JsonWriter writer, JsonSerializer serializer)
-        {
-            writer.WriteStartObject();
-            writer.WritePropertyName("op");
-            writer.WriteValue("add");
-            writer.WritePropertyName("path");
-            writer.WriteValue(Path.ToString());
             writer.WritePropertyName("value");
             serializer.Serialize(writer, Value);
-            writer.WriteEndObject();
         }
 
         /// <inheritdoc />
-        internal override void FillFromJson(JObject jObject)
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
         {
-            Path = GetMandatoryPropertyValue<string>(jObject, "path");
+            Value = jObject.GetValue("value");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var pointer = JTokenPointer.Get(token, Path);
+
+            switch (pointer)
+            {
+                case JRootPointer _:
+                    {
+                        token = Value.GetJToken();
+                        break;
+                    }
+                case JObjectPointer jObjectPointer:
+                    {
+                        jObjectPointer.SetValue(Value);
+                        break;
+                    }
+                case JArrayPointer jArrayPointer:
+                    {
+                        jArrayPointer.SetValue(Value);
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+    }
+
+    [PatchType(JsonPatchTypes.Remove)]
+    public sealed class JsonPatchRemoveDefinition : JsonPatchDefinition
+    {
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var pointer = JTokenPointer.Get(token, Path);
+
+            switch (pointer)
+            {
+                case JRootPointer _:
+                    {
+                        token = null;
+                        break;
+                    }
+                case JObjectPointer jObjectPointer:
+                    {
+                        jObjectPointer.RemoveValue();
+                        break;
+                    }
+                case JArrayPointer jArrayPointer:
+                    {
+                        jArrayPointer.RemoveValue();
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+    }
+
+    [PatchType(JsonPatchTypes.Replace)]
+    public sealed class JsonPatchReplaceDefinition : JsonPatchDefinition
+    {
+        /// <summary>
+        /// Value to replace.
+        /// </summary>
+        public object Value { get; set; }
+
+        /// <inheritdoc />
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WritePropertyName("value");
+            serializer.Serialize(writer, Value);
+        }
+
+        /// <inheritdoc />
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
+        {
             Value = jObject.GetValue("value");
         }
 
@@ -132,16 +213,94 @@ namespace EdlinSoftware.JsonPatch
                 }
                 case JObjectPointer jObjectPointer:
                 {
+                    jObjectPointer.RemoveValue();
                     jObjectPointer.SetValue(Value);
                     break;
                 }
                 case JArrayPointer jArrayPointer:
                 {
+                    jArrayPointer.RemoveValue();
                     jArrayPointer.SetValue(Value);
                     break;
                 }
                 default:
                     throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+    }
+
+    [PatchType(JsonPatchTypes.Move)]
+    public sealed class JsonPatchMoveDefinition : JsonPatchDefinition
+    {
+        /// <summary>
+        /// JSON pointer to the place to take value from.
+        /// </summary>
+        public JsonPointer From{ get; set; }
+
+        /// <inheritdoc />
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WritePropertyName("from");
+            writer.WriteValue(From.ToString());
+        }
+
+        /// <inheritdoc />
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
+        {
+            From = GetMandatoryPropertyValue<string>(jObject, "from");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            if (From.IsPrefixOf(Path))
+                throw new InvalidOperationException("Unable to move parent JSON to a child.");
+
+            var fromPointer = JTokenPointer.Get(token, From);
+            var toPointer = JTokenPointer.Get(token, Path);
+
+            var tokenToMove = RemoveTokenFromSourceAndReturnIt(fromPointer);
+
+            switch (toPointer)
+            {
+                case JRootPointer _:
+                {
+                    token = tokenToMove;
+                    break;
+                }
+                case JObjectPointer jObjectPointer:
+                {
+                    jObjectPointer.SetValue(tokenToMove);
+                    break;
+                }
+                case JArrayPointer jArrayPointer:
+                {
+                    jArrayPointer.SetValue(tokenToMove);
+                    break;
+                }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+
+        private JToken RemoveTokenFromSourceAndReturnIt(JTokenPointer fromPointer)
+        {
+            switch (fromPointer)
+            {
+                case JObjectPointer jObjectPointer:
+                {
+                    var token = jObjectPointer.GetValue();
+                    jObjectPointer.RemoveValue();
+                    return token;
+                }
+                case JArrayPointer jArrayPointer:
+                {
+                    var token = jArrayPointer.GetValue();
+                    jArrayPointer.RemoveValue();
+                    return token;
+                }
+                default:
+                    throw new InvalidOperationException("Can't move JSON");
             }
         }
     }
@@ -195,14 +354,14 @@ namespace EdlinSoftware.JsonPatch
 
             var operation = GetMandatoryPropertyValue<string>(patchDefinitionJObject, "op") ?? "";
 
-            var patchType = (JsonPatchTypes) Enum.Parse(typeof(JsonPatchTypes), operation, ignoreCase: true);
-            if(!Enum.IsDefined(typeof(JsonPatchTypes), patchType))
+            var patchType = (JsonPatchTypes)Enum.Parse(typeof(JsonPatchTypes), operation, ignoreCase: true);
+            if (!Enum.IsDefined(typeof(JsonPatchTypes), patchType))
                 throw new InvalidOperationException($"Unknown value of 'op' property: '{operation}'");
 
-            if(!KnownJsonPatchTypes.TryGetValue(patchType, out var jsonPatchType))
+            if (!KnownJsonPatchTypes.TryGetValue(patchType, out var jsonPatchType))
                 throw new InvalidOperationException($"Patch operation '{operation}' is not supported");
 
-            var jsonPatchDefinition = (JsonPatchDefinition) Activator.CreateInstance(jsonPatchType);
+            var jsonPatchDefinition = (JsonPatchDefinition)Activator.CreateInstance(jsonPatchType);
             jsonPatchDefinition.FillFromJson(patchDefinitionJObject);
             return jsonPatchDefinition;
         }

@@ -131,6 +131,24 @@ namespace EdlinSoftware.JsonPatch.Pointers
             return GetParentPointer(_referenceTokens.Count);
         }
 
+        public bool IsPrefixOf(JsonPointer another)
+        {
+            if (another == null) throw new ArgumentNullException(nameof(another));
+
+            // Root is prefix of anything.
+            if (IsRootPointer) return true;
+
+            if (_referenceTokens.Count >= another._referenceTokens.Count) return false;
+
+            for (int i = 0; i < _referenceTokens.Count; i++)
+            {
+                if (_referenceTokens[i] != another._referenceTokens[i])
+                    return false;
+            }
+
+            return true;
+        }
+
         public static implicit operator JsonPointer(string jsonPointer)
         {
             return new JsonPointer(jsonPointer);
