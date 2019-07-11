@@ -378,6 +378,62 @@ namespace EdlinSoftware.JsonPatch
         }
     }
 
+    [PatchType(JsonPatchTypes.Test)]
+    public sealed class JsonPatchTestDefinition : JsonPatchDefinition
+    {
+        /// <summary>
+        /// Value to replace.
+        /// </summary>
+        public object Value { get; set; }
+
+        /// <inheritdoc />
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WritePropertyName("value");
+            serializer.Serialize(writer, Value);
+        }
+
+        /// <inheritdoc />
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
+        {
+            Value = jObject.GetValue("value");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var pointer = JTokenPointer.Get(token, Path);
+
+            var expectedToken = Value.GetJToken();
+
+            switch (pointer)
+            {
+                case JRootPointer _:
+                    {
+                        if (!JToken.DeepEquals(token, expectedToken))
+                            throw new InvalidOperationException("JSON patch test failed.");
+                        break;
+                    }
+                case JObjectPointer jObjectPointer:
+                    {
+                        var actualToken = jObjectPointer.GetValue();
+                        if(!JToken.DeepEquals(actualToken, expectedToken))
+                            throw new InvalidOperationException("JSON patch test failed.");
+                        break;
+                    }
+                case JArrayPointer jArrayPointer:
+                    {
+                        var actualToken = jArrayPointer.GetValue();
+                        if (!JToken.DeepEquals(actualToken, expectedToken))
+                            throw new InvalidOperationException("JSON patch test failed.");
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+    }
+
     public sealed class JsonPatchDefinitionConverter : JsonConverter<JsonPatchDefinition>
     {
         private static readonly IReadOnlyDictionary<JsonPatchTypes, Type> KnownJsonPatchTypes;

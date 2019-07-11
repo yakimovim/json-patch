@@ -188,5 +188,40 @@ namespace EdlinSoftware.JsonPatch.Tests
             output.ShouldBeJson(expectedJson);
         }
 
+        public static IEnumerable<object[]> GetTestPatchData()
+        {
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", JToken.Parse("5"), "{ \"var\": 5 }" };
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", 5, "{ \"var\": 5 }" };
+            yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "/var", JToken.Parse("5"), "{ \"var\": 5 }" };
+            yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "/var", 5, "{ \"var\": 5 }" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", JToken.Parse("2"), "[1, 2, 3]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", 2, "[1, 2, 3]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", JToken.Parse("3"), "[1, 2, 3]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", 3, "[1, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", JToken.Parse("2"), "[1, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", 2, "[1, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", JToken.Parse("3"), "[1, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", 3, "[1, 2, 3]" };
+            yield return new object[] { new { Name = "Andrey" }, "/Name", "Andrey", "{\"Name\":\"Andrey\"}" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetTestPatchData))]
+        public void Test(object input, string path, object value, string expectedJson)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchTestDefinition
+                {
+                    Path = path,
+                    Value = value
+                }
+            };
+
+            var output = Patch(input, patchDefinitions);
+
+            output.ShouldBeJson(expectedJson);
+        }
+
     }
 }

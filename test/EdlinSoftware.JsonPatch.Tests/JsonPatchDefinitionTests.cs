@@ -92,7 +92,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchMoveDefinition()
+                new JsonPatchMoveDefinition
                 {
                     From = "/foo/bar",
                     Path = "/var/boo"
@@ -101,12 +101,48 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchCopyDefinition()
+                new JsonPatchCopyDefinition
                 {
                     From = "/foo/bar",
                     Path = "/var/boo"
                 },
                 "{\"op\":\"copy\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchTestDefinition
+                {
+                    Path = "/var/boo",
+                    Value = null
+                },
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":null}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchTestDefinition
+                {
+                    Path = "/var/boo",
+                    Value = 3
+                },
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":3}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchTestDefinition
+                {
+                    Path = "/var/boo",
+                    Value = new { skip = 3 }
+                },
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":{\"skip\":3}}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchTestDefinition
+                {
+                    Path = "/var/boo",
+                    Value = JToken.Parse("{\"skip\":3}")
+                },
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":{\"skip\":3}}"
             };
         }
 
@@ -225,18 +261,53 @@ namespace EdlinSoftware.JsonPatch.Tests
             patch.From.ShouldBe("/foo/bar");
         }
 
+        public static IEnumerable<object[]> GetDeserializationDataForTest()
+        {
+            yield return new object[]
+            {
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":null}",
+                "/var/boo",
+                "null"
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":3}",
+                "/var/boo",
+                "3"
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":{\"skip\":30}}",
+                "/var/boo",
+                "{\"skip\":30}"
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDeserializationDataForTest))]
+        public void Deserialize_TestPatch(string json, string expectedPath, string expectedJsonValue)
+        {
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchTestDefinition>();
+
+            patch.Path.ShouldBe(expectedPath);
+            ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
+        }
+
         private void JsonStringsAreEqual(string expectedResult, string actualResult)
         {
-            actualResult = JToken.Parse(actualResult).ToString();
-            expectedResult = JToken.Parse(expectedResult).ToString();
+            var actualToken = JToken.Parse(actualResult);
+            var expectedToken = JToken.Parse(expectedResult);
 
-            actualResult.ShouldBe(expectedResult);
+            JToken.DeepEquals(actualToken, expectedToken).ShouldBeTrue();
         }
 
         private void ValueShouldBeEqualTo(object value, string expectedJsonValue)
         {
             var valueToken = value.ShouldBeAssignableTo<JToken>();
-            valueToken.ToString().ShouldBe(JToken.Parse(expectedJsonValue).ToString());
+
+            JToken.DeepEquals(valueToken, JToken.Parse(expectedJsonValue)).ShouldBeTrue();
         }
     }
 }
