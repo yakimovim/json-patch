@@ -11,10 +11,14 @@ namespace EdlinSoftware.JsonPatch.Tests
         {
             var actualToken = obj is JToken token ? token : JToken.FromObject(obj);
 
-            var actualJson = actualToken.ToString();
-            expectedJson = JToken.Parse(expectedJson).ToString();
+            obj.ShouldBeJson(JToken.Parse(expectedJson));
+        }
 
-            JToken.DeepEquals(actualJson, expectedJson).ShouldBeTrue(() => $"'{expectedJson}' expected but '{actualJson}' obtained");
+        public static void ShouldBeJson(this object obj, JToken expectedToken)
+        {
+            var actualToken = obj is JToken token ? token : JToken.FromObject(obj);
+
+            JToken.DeepEquals(actualToken, expectedToken).ShouldBeTrue(() => $"\nExpected JSON:\n\n{expectedToken}\n\nActual JSON:\n\n{actualToken}\n");
         }
 
         public static void ShouldBe(this JsonPointer jsonPointer, string expectedValue)

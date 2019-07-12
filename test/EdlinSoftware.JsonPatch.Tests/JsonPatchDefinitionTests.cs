@@ -392,16 +392,15 @@ namespace EdlinSoftware.JsonPatch.Tests
         private void JsonStringsAreEqual(string expectedResult, string actualResult)
         {
             var actualToken = JToken.Parse(actualResult);
-            var expectedToken = JToken.Parse(expectedResult);
 
-            JToken.DeepEquals(actualToken, expectedToken).ShouldBeTrue();
+            actualToken.ShouldBeJson(expectedResult);
         }
 
         private void ValueShouldBeEqualTo(object value, string expectedJsonValue)
         {
             var valueToken = value.ShouldBeAssignableTo<JToken>();
 
-            JToken.DeepEquals(valueToken, JToken.Parse(expectedJsonValue)).ShouldBeTrue();
+            valueToken.ShouldBeJson(expectedJsonValue);
         }
     }
 }
