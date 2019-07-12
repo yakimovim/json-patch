@@ -101,6 +101,27 @@ namespace EdlinSoftware.JsonPatch.Pointers
             }
         }
 
+        public void SetManyValues(object value)
+        {
+            var valueToken = value.GetJToken();
+
+            if (valueToken is JArray valueArray)
+            {
+                var arrayIndex = _pathPart == "-"
+                    ? _jArray.Count
+                    : int.Parse(_pathPart);
+
+                foreach (var valueArrayItem in valueArray)
+                {
+                    _jArray.Insert(arrayIndex++, valueArrayItem);
+                }
+            }
+            else
+            {
+                SetValue(valueToken);
+            }
+        }
+
         public void RemoveValue()
         {
             var arrayIndex = _pathPart == "-"

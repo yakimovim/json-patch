@@ -13,6 +13,7 @@ namespace EdlinSoftware.JsonPatch
     internal enum JsonPatchTypes
     {
         Add,
+        AddMany,
         Remove,
         Replace,
         Move,
@@ -143,6 +144,45 @@ namespace EdlinSoftware.JsonPatch
                     }
                 default:
                     throw new InvalidOperationException("Unknown type of path pointer.");
+            }
+        }
+    }
+
+    [PatchType(JsonPatchTypes.AddMany)]
+    public sealed class JsonPatchAddManyDefinition : JsonPatchDefinition
+    {
+        /// <summary>
+        /// Value to add.
+        /// </summary>
+        public object Value { get; set; }
+
+        /// <inheritdoc />
+        protected override void WriteAdditionalJsonProperties(JsonWriter writer, JsonSerializer serializer)
+        {
+            writer.WritePropertyName("value");
+            serializer.Serialize(writer, Value);
+        }
+
+        /// <inheritdoc />
+        protected override void FillAdditionalPropertiesFromJson(JObject jObject)
+        {
+            Value = jObject.GetValue("value");
+        }
+
+        /// <inheritdoc />
+        internal override void Apply(ref JToken token)
+        {
+            var pointer = JTokenPointer.Get(token, Path);
+
+            switch (pointer)
+            {
+                case JArrayPointer jArrayPointer:
+                    {
+                        jArrayPointer.SetManyValues(Value);
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("'addmany' patch should work only with arrays.");
             }
         }
     }
@@ -417,7 +457,7 @@ namespace EdlinSoftware.JsonPatch
                 case JObjectPointer jObjectPointer:
                     {
                         var actualToken = jObjectPointer.GetValue();
-                        if(!JToken.DeepEquals(actualToken, expectedToken))
+                        if (!JToken.DeepEquals(actualToken, expectedToken))
                             throw new InvalidOperationException("JSON patch test failed.");
                         break;
                     }

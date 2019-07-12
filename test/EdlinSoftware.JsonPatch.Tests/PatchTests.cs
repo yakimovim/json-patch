@@ -55,6 +55,45 @@ namespace EdlinSoftware.JsonPatch.Tests
             output.ShouldBeJson(expectedJson);
         }
 
+        public static IEnumerable<object[]> GetAddManyPatchData()
+        {
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", JToken.Parse("7"), "[1, 2, 3, 7]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", 7, "[1, 2, 3, 7]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", JToken.Parse("7"), "[1, 2, 3, 7]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", 7, "[1, 2, 3, 7]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/3", JToken.Parse("7"), "[1, 2, 3, 7]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/3", 7, "[1, 2, 3, 7]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/3", JToken.Parse("7"), "[1, 2, 3, 7]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/3", 7, "[1, 2, 3, 7]" };
+
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", JToken.Parse("[4, 5]"), "[1, 2, 3, 4, 5]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", new [] { 4, 5 }, "[1, 2, 3, 4, 5]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", JToken.Parse("[4, 5]"), "[1, 2, 3, 4, 5]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/-", new[] { 4, 5 }, "[1, 2, 3, 4, 5]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", JToken.Parse("[4, 5]"), "[1, 4, 5, 2, 3]" };
+            yield return new object[] { JToken.Parse("[1, 2, 3]"), "/1", new[] { 4, 5 }, "[1, 4, 5, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", JToken.Parse("[4, 5]"), "[1, 4, 5, 2, 3]" };
+            yield return new object[] { new[] { 1, 2, 3 }, "/1", new[] { 4, 5 }, "[1, 4, 5, 2, 3]" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetAddManyPatchData))]
+        public void AddMany(object input, string path, object value, string expectedJson)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = path,
+                    Value = value
+                }
+            };
+
+            var output = Patch(input, patchDefinitions);
+
+            output.ShouldBeJson(expectedJson);
+        }
+
         public static IEnumerable<object[]> GetRemovePatchData()
         {
             yield return new object[] { JToken.Parse("{ \"var\": 3 }"), "/var", "{}" };

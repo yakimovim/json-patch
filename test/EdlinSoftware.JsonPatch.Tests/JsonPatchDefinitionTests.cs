@@ -144,6 +144,60 @@ namespace EdlinSoftware.JsonPatch.Tests
                 },
                 "{\"op\":\"test\",\"path\":\"/var/boo\",\"value\":{\"skip\":3}}"
             };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = null
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":null}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = 3
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":3}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = new { skip = 30 }
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":{\"skip\":30}}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = JToken.Parse("{\"skip\":30}")
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":{\"skip\":30}}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = JToken.Parse("[1,2,3]")
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":[1,2,3]}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = "/var/boo",
+                    Value = new[] {1, 2, 3}
+                },
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":[1,2,3]}"
+            };
         }
 
         [Theory]
@@ -184,6 +238,46 @@ namespace EdlinSoftware.JsonPatch.Tests
             var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
 
             var patch = jsonPatch.ShouldBeOfType<JsonPatchAddDefinition>();
+
+            patch.Path.ShouldBe(expectedPath);
+            ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
+        }
+
+        public static IEnumerable<object[]> GetDeserializationDataForAddMany()
+        {
+            yield return new object[]
+            {
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":null}",
+                "/var/boo",
+                "null"
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":3}",
+                "/var/boo",
+                "3"
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":{\"skip\":30}}",
+                "/var/boo",
+                "{\"skip\":30}"
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"addmany\",\"path\":\"/var/boo\",\"value\":[1,2,3]}",
+                "/var/boo",
+                "[1,2,3]"
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDeserializationDataForAddMany))]
+        public void Deserialize_AddManyPatch(string json, string expectedPath, string expectedJsonValue)
+        {
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchAddManyDefinition>();
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
