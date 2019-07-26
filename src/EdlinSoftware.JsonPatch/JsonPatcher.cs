@@ -12,41 +12,55 @@ namespace EdlinSoftware.JsonPatch
     /// </summary>
     public static class JsonPatcher
     {
-        public static JToken PatchTokenCopy(JToken initial, IReadOnlyList<JsonPatchDefinition> patchDefinitions)
+        public static JToken PatchTokenCopy(
+            JToken initial,
+            IReadOnlyList<JsonPatchDefinition> patchDefinitions,
+            JsonSerializer serializer = null)
         {
+            serializer = serializer ?? JsonSerializer.CreateDefault();
+
             var copy = initial.DeepClone();
 
             patchDefinitions = patchDefinitions ?? new JsonPatchDefinition[0];
 
             foreach (var jsonPatchDefinition in patchDefinitions)
             {
-                jsonPatchDefinition.Apply(ref copy);
+                jsonPatchDefinition.Apply(ref copy, serializer);
             }
 
             return copy;
         }
 
-        public static T PatchObjectCopy<T>(T obj, IReadOnlyList<JsonPatchDefinition> patchDefinitions)
+        public static JToken PatchTokenCopy(
+            JToken initial,
+            IReadOnlyList<JsonPatchDefinition> patchDefinitions,
+            JsonSerializerSettings serializerSettings)
+        {
+            return PatchTokenCopy(initial, patchDefinitions, JsonSerializer.Create(serializerSettings));
+        }
+
+        public static T PatchObjectCopy<T>(
+            T obj,
+            IReadOnlyList<JsonPatchDefinition> patchDefinitions,
+            JsonSerializer serializer = null)
         {
             var token = JToken.FromObject(obj);
 
-            var patchedCopy = PatchTokenCopy(token, patchDefinitions);
+            var patchedCopy = PatchTokenCopy(token, patchDefinitions, serializer);
 
             return patchedCopy.ToObject<T>();
         }
-    }
 
-    internal static class Utilities
-    {
-        public static JToken GetJToken(this object value, JsonSerializer serializer = null)
+        public static T PatchObjectCopy<T>(
+            T obj,
+            IReadOnlyList<JsonPatchDefinition> patchDefinitions,
+            JsonSerializerSettings settings)
         {
-            if(value == null)
-                return JToken.Parse("null");
+            var token = JToken.FromObject(obj);
 
-            if (value is JToken jToken)
-                return jToken;
+            var patchedCopy = PatchTokenCopy(token, patchDefinitions, settings);
 
-            return JToken.FromObject(value, serializer ?? JsonSerializer.CreateDefault());
+            return patchedCopy.ToObject<T>();
         }
     }
 }

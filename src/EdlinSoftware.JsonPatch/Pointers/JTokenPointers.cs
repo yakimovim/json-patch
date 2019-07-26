@@ -89,23 +89,21 @@ namespace EdlinSoftware.JsonPatch.Pointers
             return _jArray[arrayIndex];
         }
 
-        public void SetValue(object value)
+        public void SetValue(JToken value)
         {
             if (_pathPart == "-")
             {
-                _jArray.Add(value.GetJToken());
+                _jArray.Add(value);
             }
             else
             {
-                _jArray.Insert(int.Parse(_pathPart), value.GetJToken());
+                _jArray.Insert(int.Parse(_pathPart), value);
             }
         }
 
-        public void SetManyValues(object value)
+        public void SetManyValues(JToken value)
         {
-            var valueToken = value.GetJToken();
-
-            if (valueToken is JArray valueArray)
+            if (value is JArray valueArray)
             {
                 var arrayIndex = _pathPart == "-"
                     ? _jArray.Count
@@ -118,7 +116,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
             }
             else
             {
-                SetValue(valueToken);
+                SetValue(value);
             }
         }
 
@@ -160,9 +158,9 @@ namespace EdlinSoftware.JsonPatch.Pointers
             return _jObject[_pathPart];
         }
 
-        public void SetValue(object value)
+        public void SetValue(JToken value)
         {
-            _jObject[_pathPart] = value.GetJToken();
+            _jObject[_pathPart] = value;
         }
 
         public void RemoveValue()

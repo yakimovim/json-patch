@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using EdlinSoftware.JsonPatch.Pointers;
+using EdlinSoftware.JsonPatch.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -96,7 +97,8 @@ namespace EdlinSoftware.JsonPatch
         /// Applies this patch to the token.
         /// </summary>
         /// <param name="token">JSON token.</param>
-        internal abstract void Apply(ref JToken token);
+        /// <param name="serializer">JSON serializer.</param>
+        internal abstract void Apply(ref JToken token, JsonSerializer serializer);
     }
 
     [PatchType(JsonPatchTypes.Add)]
@@ -121,25 +123,27 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+
+            var jValue = Value.GetJToken(serializer);
 
             switch (pointer)
             {
                 case JRootPointer _:
                     {
-                        token = Value.GetJToken();
+                        token = jValue;
                         break;
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.SetValue(Value);
+                        jObjectPointer.SetValue(jValue);
                         break;
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetValue(Value);
+                        jArrayPointer.SetValue(jValue);
                         break;
                     }
                 default:
@@ -170,7 +174,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
 
@@ -178,7 +182,7 @@ namespace EdlinSoftware.JsonPatch
             {
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetManyValues(Value);
+                        jArrayPointer.SetManyValues(Value.GetJToken(serializer));
                         break;
                     }
                 default:
@@ -191,7 +195,7 @@ namespace EdlinSoftware.JsonPatch
     public sealed class JsonPatchRemoveDefinition : JsonPatchDefinition
     {
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
 
@@ -240,27 +244,29 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+
+            var jValue = Value.GetJToken(serializer);
 
             switch (pointer)
             {
                 case JRootPointer _:
                     {
-                        token = Value.GetJToken();
+                        token = jValue;
                         break;
                     }
                 case JObjectPointer jObjectPointer:
                     {
                         jObjectPointer.RemoveValue();
-                        jObjectPointer.SetValue(Value);
+                        jObjectPointer.SetValue(jValue);
                         break;
                     }
                 case JArrayPointer jArrayPointer:
                     {
                         jArrayPointer.RemoveValue();
-                        jArrayPointer.SetValue(Value);
+                        jArrayPointer.SetValue(jValue);
                         break;
                     }
                 default:
@@ -291,7 +297,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             if (From.IsPrefixOf(Path))
                 throw new InvalidOperationException("Unable to move parent JSON to a child.");
@@ -367,7 +373,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var fromPointer = JTokenPointer.Get(token, From);
             var toPointer = JTokenPointer.Get(token, Path);
@@ -440,11 +446,11 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token)
+        internal override void Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
 
-            var expectedToken = Value.GetJToken();
+            var expectedToken = Value.GetJToken(serializer);
 
             switch (pointer)
             {
