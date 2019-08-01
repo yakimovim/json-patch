@@ -98,7 +98,7 @@ namespace EdlinSoftware.JsonPatch
         /// </summary>
         /// <param name="token">JSON token.</param>
         /// <param name="serializer">JSON serializer.</param>
-        internal abstract void Apply(ref JToken token, JsonSerializer serializer);
+        internal abstract Result Apply(ref JToken token, JsonSerializer serializer);
     }
 
     [PatchType(JsonPatchTypes.Add)]
@@ -123,31 +123,30 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+            if (pointer.IsFailure) return Result.Fail(pointer.Error);
 
             var jValue = Value.GetJToken(serializer);
 
-            switch (pointer)
+            switch (pointer.Value)
             {
                 case JRootPointer _:
                     {
                         token = jValue;
-                        break;
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.SetValue(jValue);
-                        break;
+                        return jObjectPointer.SetValue(jValue);
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetValue(jValue);
-                        break;
+                        return jArrayPointer.SetValue(jValue);
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
     }
@@ -174,19 +173,19 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+            if (pointer.IsFailure) return Result.Fail(pointer.Error);
 
-            switch (pointer)
+            switch (pointer.Value)
             {
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetManyValues(Value.GetJToken(serializer));
-                        break;
+                        return jArrayPointer.SetManyValues(Value.GetJToken(serializer));
                     }
                 default:
-                    throw new InvalidOperationException("'addmany' patch should work only with arrays.");
+                    return Result.Fail("'addmany' patch should work only with arrays.");
             }
         }
     }
@@ -195,29 +194,28 @@ namespace EdlinSoftware.JsonPatch
     public sealed class JsonPatchRemoveDefinition : JsonPatchDefinition
     {
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+            if (pointer.IsFailure) return Result.Fail(pointer.Error);
 
-            switch (pointer)
+            switch (pointer.Value)
             {
                 case JRootPointer _:
                     {
                         token = null;
-                        break;
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.RemoveValue();
-                        break;
+                        return jObjectPointer.RemoveValue();
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.RemoveValue();
-                        break;
+                        return jArrayPointer.RemoveValue();
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
     }
@@ -244,33 +242,32 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+            if (pointer.IsFailure) return Result.Fail(pointer.Error);
 
             var jValue = Value.GetJToken(serializer);
 
-            switch (pointer)
+            switch (pointer.Value)
             {
                 case JRootPointer _:
                     {
                         token = jValue;
-                        break;
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.RemoveValue();
-                        jObjectPointer.SetValue(jValue);
-                        break;
+                        return jObjectPointer.RemoveValue()
+                            .OnSuccess(() => jObjectPointer.SetValue(jValue));
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.RemoveValue();
-                        jArrayPointer.SetValue(jValue);
-                        break;
+                        return jArrayPointer.RemoveValue()
+                            .OnSuccess(() => jArrayPointer.SetValue(jValue));
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
     }
@@ -297,56 +294,61 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             if (From.IsPrefixOf(Path))
-                throw new InvalidOperationException("Unable to move parent JSON to a child.");
+                return Result.Fail("Unable to move parent JSON to a child.");
 
             var fromPointer = JTokenPointer.Get(token, From);
+            if (fromPointer.IsFailure) return Result.Fail(fromPointer.Error);
             var toPointer = JTokenPointer.Get(token, Path);
+            if (toPointer.IsFailure) return Result.Fail(toPointer.Error);
 
-            var tokenToMove = RemoveTokenFromSourceAndReturnIt(fromPointer);
+            var tokenToMove = RemoveTokenFromSourceAndReturnIt(fromPointer.Value);
+            if (tokenToMove.IsFailure) return Result.Fail(tokenToMove.Error);
 
-            switch (toPointer)
+            switch (toPointer.Value)
             {
                 case JRootPointer _:
                     {
-                        token = tokenToMove;
-                        break;
+                        token = tokenToMove.Value;
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.SetValue(tokenToMove);
-                        break;
+                        return jObjectPointer.SetValue(tokenToMove.Value);
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetValue(tokenToMove);
-                        break;
+                        return jArrayPointer.SetValue(tokenToMove.Value);
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
 
-        private JToken RemoveTokenFromSourceAndReturnIt(JTokenPointer fromPointer)
+        private Result<JToken> RemoveTokenFromSourceAndReturnIt(JTokenPointer fromPointer)
         {
             switch (fromPointer)
             {
                 case JObjectPointer jObjectPointer:
                     {
                         var token = jObjectPointer.GetValue();
-                        jObjectPointer.RemoveValue();
-                        return token;
+
+                        return token
+                            .OnSuccess(() => jObjectPointer.RemoveValue())
+                            .OnSuccess(() => token.Value);
                     }
                 case JArrayPointer jArrayPointer:
                     {
                         var token = jArrayPointer.GetValue();
-                        jArrayPointer.RemoveValue();
-                        return token;
+
+                        return token
+                            .OnSuccess(() => jArrayPointer.RemoveValue())
+                            .OnSuccess(() => token.Value);
                     }
                 default:
-                    throw new InvalidOperationException("Can't move JSON");
+                    return Result.Fail<JToken>("Can't move entire JSON");
             }
         }
     }
@@ -373,53 +375,56 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var fromPointer = JTokenPointer.Get(token, From);
+            if (fromPointer.IsFailure) return Result.Fail(fromPointer.Error);
             var toPointer = JTokenPointer.Get(token, Path);
+            if (toPointer.IsFailure) return Result.Fail(toPointer.Error);
 
-            var tokenToCopy = GetSourceTokenCopy(token, fromPointer);
+            var tokenToCopy = GetSourceTokenCopy(token, fromPointer.Value);
+            if (tokenToCopy.IsFailure) return Result.Fail(tokenToCopy.Error);
 
-            switch (toPointer)
+            switch (toPointer.Value)
             {
                 case JRootPointer _:
                     {
-                        token = tokenToCopy;
-                        break;
+                        token = tokenToCopy.Value;
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        jObjectPointer.SetValue(tokenToCopy);
-                        break;
+                        return jObjectPointer.SetValue(tokenToCopy.Value);
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        jArrayPointer.SetValue(tokenToCopy);
-                        break;
+                        return jArrayPointer.SetValue(tokenToCopy.Value);
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
 
-        private JToken GetSourceTokenCopy(JToken rootToken, JTokenPointer fromPointer)
+        private Result<JToken> GetSourceTokenCopy(JToken rootToken, JTokenPointer fromPointer)
         {
             switch (fromPointer)
             {
                 case JRootPointer _:
                     {
-                        return rootToken.DeepClone();
+                        return Result.Ok(rootToken.DeepClone());
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        return jObjectPointer.GetValue().DeepClone();
+                        return jObjectPointer.GetValue()
+                            .OnSuccess(t => t.DeepClone());
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        return jArrayPointer.GetValue().DeepClone();
+                        return jArrayPointer.GetValue()
+                            .OnSuccess(t => t.DeepClone());
                     }
                 default:
-                    throw new InvalidOperationException("Can't copy JSON");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
     }
@@ -446,36 +451,43 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <inheritdoc />
-        internal override void Apply(ref JToken token, JsonSerializer serializer)
+        internal override Result Apply(ref JToken token, JsonSerializer serializer)
         {
             var pointer = JTokenPointer.Get(token, Path);
+            if (pointer.IsFailure) return Result.Fail(pointer.Error);
 
             var expectedToken = Value.GetJToken(serializer);
 
-            switch (pointer)
+            switch (pointer.Value)
             {
                 case JRootPointer _:
                     {
                         if (!JToken.DeepEquals(token, expectedToken))
-                            throw new InvalidOperationException("JSON patch test failed.");
-                        break;
+                            return Result.Fail("JSON patch test failed.");
+                        return Result.Ok();
                     }
                 case JObjectPointer jObjectPointer:
                     {
-                        var actualToken = jObjectPointer.GetValue();
-                        if (!JToken.DeepEquals(actualToken, expectedToken))
-                            throw new InvalidOperationException("JSON patch test failed.");
-                        break;
+                        return jObjectPointer.GetValue()
+                            .OnSuccess(actualToken =>
+                            {
+                                if (!JToken.DeepEquals(actualToken, expectedToken))
+                                    return Result.Fail("JSON patch test failed.");
+                                return Result.Ok();
+                            });
                     }
                 case JArrayPointer jArrayPointer:
                     {
-                        var actualToken = jArrayPointer.GetValue();
-                        if (!JToken.DeepEquals(actualToken, expectedToken))
-                            throw new InvalidOperationException("JSON patch test failed.");
-                        break;
+                        return jArrayPointer.GetValue()
+                            .OnSuccess(actualToken =>
+                            {
+                                if (!JToken.DeepEquals(actualToken, expectedToken))
+                                    return Result.Fail("JSON patch test failed.");
+                                return Result.Ok();
+                            });
                     }
                 default:
-                    throw new InvalidOperationException("Unknown type of path pointer.");
+                    throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
     }
@@ -510,7 +522,7 @@ namespace EdlinSoftware.JsonPatch
 
         public override void WriteJson(JsonWriter writer, JsonPatchDefinition value, JsonSerializer serializer)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value), "Can't serialize null patch definitions.");
+            if (value == null) throw new ArgumentNullException(nameof(value));
 
             value.WriteToJson(writer, serializer);
         }
@@ -520,21 +532,21 @@ namespace EdlinSoftware.JsonPatch
         {
             var token = JToken.ReadFrom(reader);
 
-            if (token == null) throw new InvalidOperationException("There is no patch definition.");
+            if (token == null) throw new JsonPatchException("There is no patch definition.");
 
-            if (token.Type != JTokenType.Object) throw new InvalidOperationException("Patch definition should be a Json object.");
+            if (token.Type != JTokenType.Object) throw new JsonPatchException(JsonPatchMessages.PatchDefinitionShouldBeJsonObject);
 
             JObject patchDefinitionJObject = token as JObject;
-            if (patchDefinitionJObject == null) throw new InvalidOperationException("Patch definition should be a Json object.");
+            if (patchDefinitionJObject == null) throw new JsonPatchException(JsonPatchMessages.PatchDefinitionShouldBeJsonObject);
 
             var operation = GetMandatoryPropertyValue<string>(patchDefinitionJObject, "op") ?? "";
 
             var patchType = (JsonPatchTypes)Enum.Parse(typeof(JsonPatchTypes), operation, ignoreCase: true);
             if (!Enum.IsDefined(typeof(JsonPatchTypes), patchType))
-                throw new InvalidOperationException($"Unknown value of 'op' property: '{operation}'");
+                throw new JsonPatchException($"Unknown value of 'op' property: '{operation}'");
 
             if (!KnownJsonPatchTypes.TryGetValue(patchType, out var jsonPatchType))
-                throw new InvalidOperationException($"Patch operation '{operation}' is not supported");
+                throw new JsonPatchException($"Patch operation '{operation}' is not supported");
 
             var jsonPatchDefinition = (JsonPatchDefinition)Activator.CreateInstance(jsonPatchType);
             jsonPatchDefinition.FillFromJson(patchDefinitionJObject);
@@ -546,7 +558,7 @@ namespace EdlinSoftware.JsonPatch
     {
         public static T GetMandatoryPropertyValue<T>(JObject patchDefinitionJObject, string propertyName)
         {
-            if (!patchDefinitionJObject.ContainsKey(propertyName)) throw new InvalidOperationException($"Patch definition must contain '{propertyName}' property");
+            if (!patchDefinitionJObject.ContainsKey(propertyName)) throw new JsonPatchException($"Patch definition must contain '{propertyName}' property");
 
             return patchDefinitionJObject.Value<T>(propertyName);
         }

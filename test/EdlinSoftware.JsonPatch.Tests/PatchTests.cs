@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using EdlinSoftware.JsonPatch.Utilities;
 using Newtonsoft.Json.Linq;
+using Shouldly;
 using Xunit;
 
 namespace EdlinSoftware.JsonPatch.Tests
@@ -8,7 +10,7 @@ namespace EdlinSoftware.JsonPatch.Tests
 
     public class PatchTests
     {
-        public static IEnumerable<object[]> GetAddPatchData()
+        public static IEnumerable<object[]> GetAddPatchData_Success()
         {
             yield return new object[] { JToken.Parse("{}"), "/var", JToken.Parse("3"), "{ \"var\": 3 }" };
             yield return new object[] { JToken.Parse("{}"), "/var", 3, "{ \"var\": 3 }" };
@@ -38,8 +40,8 @@ namespace EdlinSoftware.JsonPatch.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetAddPatchData))]
-        public void Add(object input, string path, object value, string expectedJson)
+        [MemberData(nameof(GetAddPatchData_Success))]
+        public void Add_Success(object input, string path, object value, string expectedJson)
         {
             var patchDefinitions = new JsonPatchDefinition[]
             {
@@ -54,8 +56,35 @@ namespace EdlinSoftware.JsonPatch.Tests
 
             output.ShouldBeJson(expectedJson);
         }
+        public static IEnumerable<object[]> GetAddPatchData_Failure()
+        {
+            yield return new object[] { JToken.Parse("{}"), "/foo/bar", 3, "foo" };
+            yield return new object[] { JToken.Parse("[]"), "/7", 3, "7" };
+        }
 
-        public static IEnumerable<object[]> GetAddManyPatchData()
+
+        [Theory]
+        [MemberData(nameof(GetAddPatchData_Failure))]
+        public void Add_Failure(object input, string path, object value, params string[] expectedMessageParts)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchAddDefinition
+                {
+                    Path = path,
+                    Value = value
+                }
+            };
+
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+
+            foreach (var expectedMessagePart in expectedMessageParts)
+            {
+                exception.Message.ShouldContain(expectedMessagePart);
+            }
+        }
+
+        public static IEnumerable<object[]> GetAddManyPatchData_Success()
         {
             yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", JToken.Parse("7"), "[1, 2, 3, 7]" };
             yield return new object[] { JToken.Parse("[1, 2, 3]"), "/-", 7, "[1, 2, 3, 7]" };
@@ -77,8 +106,8 @@ namespace EdlinSoftware.JsonPatch.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetAddManyPatchData))]
-        public void AddMany(object input, string path, object value, string expectedJson)
+        [MemberData(nameof(GetAddManyPatchData_Success))]
+        public void AddMany_Success(object input, string path, object value, string expectedJson)
         {
             var patchDefinitions = new JsonPatchDefinition[]
             {
@@ -94,7 +123,36 @@ namespace EdlinSoftware.JsonPatch.Tests
             output.ShouldBeJson(expectedJson);
         }
 
-        public static IEnumerable<object[]> GetRemovePatchData()
+        public static IEnumerable<object[]> GetAddManyPatchData_Failure()
+        {
+            yield return new object[] { JToken.Parse("{}"), "/var", 7, "only with arrays" };
+            yield return new object[] { JToken.Parse("{}"), "/-", 7, "only with arrays" };
+            yield return new object[] { JToken.Parse("[]"), "/var", 7, "var" };
+            yield return new object[] { JToken.Parse("[]"), "/10", 7, "10" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetAddManyPatchData_Failure))]
+        public void AddMany_Failure(object input, string path, object value, params string[] expectedMessageParts)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchAddManyDefinition
+                {
+                    Path = path,
+                    Value = value
+                }
+            };
+
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+
+            foreach (var expectedMessagePart in expectedMessageParts)
+            {
+                exception.Message.ShouldContain(expectedMessagePart);
+            }
+        }
+
+        public static IEnumerable<object[]> GetRemovePatchData_Success()
         {
             yield return new object[] { JToken.Parse("{ \"var\": 3 }"), "/var", "{}" };
             yield return new object[] { new Dictionary<string, object> { { "var", 5 } }, "/var", "{}" };
@@ -106,8 +164,8 @@ namespace EdlinSoftware.JsonPatch.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetRemovePatchData))]
-        public void Remove(object input, string path, string expectedJson)
+        [MemberData(nameof(GetRemovePatchData_Success))]
+        public void Remove_Success(object input, string path, string expectedJson)
         {
             var patchDefinitions = new JsonPatchDefinition[]
             {
@@ -122,7 +180,35 @@ namespace EdlinSoftware.JsonPatch.Tests
             output.ShouldBeJson(expectedJson);
         }
 
-        public static IEnumerable<object[]> GetReplacePatchData()
+        public static IEnumerable<object[]> GetRemovePatchData_Failure()
+        {
+            yield return new object[] { JToken.Parse("{ \"var\": 3 }"), "/foo", "foo" };
+            yield return new object[] { JToken.Parse("[1,2,3]"), "/foo", "foo" };
+            yield return new object[] { JToken.Parse("[1,2,3]"), "/5", "5" };
+            yield return new object[] { JToken.Parse("[]"), "/-", "-" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetRemovePatchData_Failure))]
+        public void Remove_Failure(object input, string path, params string[] expectedMessageParts)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchRemoveDefinition
+                {
+                    Path = path,
+                }
+            };
+
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+
+            foreach (var expectedMessagePart in expectedMessageParts)
+            {
+                exception.Message.ShouldContain(expectedMessagePart);
+            }
+        }
+
+        public static IEnumerable<object[]> GetReplacePatchData_Success()
         {
             yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", JToken.Parse("3"), "{ \"var\": 3 }" };
             yield return new object[] { JToken.Parse("{\"var\": 5}"), "/var", 3, "{ \"var\": 3 }" };
@@ -144,8 +230,8 @@ namespace EdlinSoftware.JsonPatch.Tests
         }
 
         [Theory]
-        [MemberData(nameof(GetReplacePatchData))]
-        public void Replace(object input, string path, object value, string expectedJson)
+        [MemberData(nameof(GetReplacePatchData_Success))]
+        public void Replace_Success(object input, string path, object value, string expectedJson)
         {
             var patchDefinitions = new JsonPatchDefinition[]
             {
@@ -159,6 +245,35 @@ namespace EdlinSoftware.JsonPatch.Tests
             var output = Patch(input, patchDefinitions);
 
             output.ShouldBeJson(expectedJson);
+        }
+
+        public static IEnumerable<object[]> GetReplacePatchData_Failure()
+        {
+            yield return new object[] { JToken.Parse("{\"var\": 5}"), "/foo", 3, "foo" };
+            yield return new object[] { JToken.Parse("[1,2,3]"), "/foo", 7, "foo" };
+            yield return new object[] { JToken.Parse("[1,2,3]"), "/10", 7, "10" };
+            yield return new object[] { JToken.Parse("[]"), "/-", 7, "-" };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetReplacePatchData_Failure))]
+        public void Replace_Failure(object input, string path, object value, params string[] expectedMessageParts)
+        {
+            var patchDefinitions = new JsonPatchDefinition[]
+            {
+                new JsonPatchReplaceDefinition
+                {
+                    Path = path,
+                    Value = value
+                }
+            };
+
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+
+            foreach (var expectedMessagePart in expectedMessageParts)
+            {
+                exception.Message.ShouldContain(expectedMessagePart);
+            }
         }
 
         public static IEnumerable<object[]> GetMovePatchData()

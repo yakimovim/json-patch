@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using EdlinSoftware.JsonPatch.Utilities;
 
 namespace EdlinSoftware.JsonPatch.Pointers
 {
@@ -18,6 +19,8 @@ namespace EdlinSoftware.JsonPatch.Pointers
             internal ReferenceToken(JsonPointer pointer, int index)
             {
                 _pointer = pointer ?? throw new ArgumentNullException(nameof(pointer));
+                if(index < 0 || index >= _pointer._referenceTokens.Count)
+                    throw new ArgumentOutOfRangeException(nameof(index));
                 _index = index;
             }
 
@@ -50,7 +53,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
             get
             {
                 if(IsRootPointer)
-                    throw new InvalidOperationException("Root pointer does not have last reference token.");
+                    throw new JsonPatchException("Root pointer does not have last reference token.");
 
                 return new ReferenceToken(this, _referenceTokens.Count - 1);
             }
@@ -78,7 +81,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
         private static string NoEmptyParts(string s)
         {
             if(s == string.Empty)
-                throw new InvalidOperationException("Json pointer can't contain empty reference tokens");
+                throw new JsonPatchException("Json pointer can't contain empty reference tokens");
 
             return s;
         }
@@ -100,7 +103,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
         public IEnumerable<ReferenceToken> GetReferenceTokensExceptLast()
         {
             if(IsRootPointer)
-                throw new InvalidOperationException("Root pointer does not have last reference token.");
+                throw new JsonPatchException("Root pointer does not have last reference token.");
 
             for (int i = 0; i < _referenceTokens.Count - 1; i++)
             {
@@ -118,7 +121,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
         public JsonPointer GetParentPointer(int numberOfReferenceTokensInPointer)
         {
             if(numberOfReferenceTokensInPointer < 0 || numberOfReferenceTokensInPointer > _referenceTokens.Count)
-                throw new InvalidOperationException($"There is no parent JSON pointer containing {numberOfReferenceTokensInPointer} reference tokens.");
+                throw new JsonPatchException($"There is no parent JSON pointer containing {numberOfReferenceTokensInPointer} reference tokens.");
 
             return new JsonPointer(_referenceTokens.Take(numberOfReferenceTokensInPointer).ToArray());
         }
@@ -126,7 +129,7 @@ namespace EdlinSoftware.JsonPatch.Pointers
         public JsonPointer GetParentPointerForLastReferenceToken()
         {
             if (IsRootPointer)
-                throw new InvalidOperationException("Root pointer does not have last reference token.");
+                throw new JsonPatchException("Root pointer does not have last reference token.");
 
             return GetParentPointer(_referenceTokens.Count);
         }

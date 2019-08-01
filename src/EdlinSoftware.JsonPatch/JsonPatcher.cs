@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using EdlinSoftware.JsonPatch.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -25,7 +26,9 @@ namespace EdlinSoftware.JsonPatch
 
             foreach (var jsonPatchDefinition in patchDefinitions)
             {
-                jsonPatchDefinition.Apply(ref copy, serializer);
+                var result = jsonPatchDefinition.Apply(ref copy, serializer);
+                if(result.IsFailure)
+                    throw new JsonPatchException(result.Error);
             }
 
             return copy;

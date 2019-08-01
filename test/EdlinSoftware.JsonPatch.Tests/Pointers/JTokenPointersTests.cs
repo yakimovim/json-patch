@@ -1,5 +1,4 @@
-﻿using System;
-using EdlinSoftware.JsonPatch.Pointers;
+﻿using EdlinSoftware.JsonPatch.Pointers;
 using Newtonsoft.Json.Linq;
 using Shouldly;
 using Xunit;
@@ -15,7 +14,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jObject, "");
 
-            pointer.ShouldBeOfType<JRootPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            pointer.Value.ShouldBeOfType<JRootPointer>();
         }
 
         [Fact]
@@ -25,7 +25,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jArray, "");
 
-            pointer.ShouldBeOfType<JRootPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            pointer.Value.ShouldBeOfType<JRootPointer>();
         }
 
         [Fact]
@@ -35,7 +36,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jObject, "/var");
 
-            var jObjectPointer = pointer.ShouldBeOfType<JObjectPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jObjectPointer = pointer.Value.ShouldBeOfType<JObjectPointer>();
 
             var (jObj, pathPart) = jObjectPointer;
 
@@ -50,7 +52,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jArray, "/0");
 
-            var jArrayPointer = pointer.ShouldBeOfType<JArrayPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jArrayPointer = pointer.Value.ShouldBeOfType<JArrayPointer>();
 
             var (jArr, pathPart) = jArrayPointer;
 
@@ -65,7 +68,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jObject, "/var/boo");
 
-            var jObjectPointer = pointer.ShouldBeOfType<JObjectPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jObjectPointer = pointer.Value.ShouldBeOfType<JObjectPointer>();
 
             var (jObj, pathPart) = jObjectPointer;
 
@@ -80,7 +84,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jArray, "/1/bar");
 
-            var jObjectPointer = pointer.ShouldBeOfType<JObjectPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jObjectPointer = pointer.Value.ShouldBeOfType<JObjectPointer>();
 
             var (jObj, pathPart) = jObjectPointer;
 
@@ -95,7 +100,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jObject, "/var/-");
 
-            var jArrayPointer = pointer.ShouldBeOfType<JArrayPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jArrayPointer = pointer.Value.ShouldBeOfType<JArrayPointer>();
 
             var (jArr, pathPart) = jArrayPointer;
 
@@ -110,7 +116,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jArray, "/-/bar");
 
-            var jObjectPointer = pointer.ShouldBeOfType<JObjectPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jObjectPointer = pointer.Value.ShouldBeOfType<JObjectPointer>();
 
             var (jObj, pathPart) = jObjectPointer;
 
@@ -123,12 +130,10 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JObject jObject = JObject.Parse("{ \"var\": [] }");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jObject, "/boo/var");
-            });
+            var pointer = JTokenPointer.Get(jObject, "/boo/var");
 
-            exception.Message.ShouldContain("'/boo'");
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("'/boo'");
         }
 
         [Fact]
@@ -136,13 +141,11 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JArray jArray = JArray.Parse("[ {}, {} ]");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jArray, "/4/var");
-            });
-
-            exception.Message.ShouldContain("''");
-            exception.Message.ShouldContain("'4'");
+            var pointer = JTokenPointer.Get(jArray, "/4/var");
+            
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("''");
+            pointer.Error.ShouldContain("'4'");
         }
 
         [Fact]
@@ -150,13 +153,11 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JArray jArray = JArray.Parse("[ {}, {} ]");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jArray, "/4");
-            });
+            var pointer = JTokenPointer.Get(jArray, "/4");
 
-            exception.Message.ShouldContain("''");
-            exception.Message.ShouldContain("'4'");
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("''");
+            pointer.Error.ShouldContain("'4'");
         }
 
         [Fact]
@@ -164,13 +165,11 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JArray jArray = JArray.Parse("[ {}, {} ]");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jArray, "/var/bar");
-            });
+            var pointer = JTokenPointer.Get(jArray, "/var/bar");
 
-            exception.Message.ShouldContain("''");
-            exception.Message.ShouldContain("'var'");
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("''");
+            pointer.Error.ShouldContain("'var'");
         }
 
         [Fact]
@@ -178,13 +177,11 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JObject jObject = JObject.Parse("{ \"var\": 3 }");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jObject, "/var/bar/foo");
-            });
+            var pointer = JTokenPointer.Get(jObject, "/var/bar/foo");
 
-            exception.Message.ShouldContain("'/var'");
-            exception.Message.ShouldContain("'Integer'");
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("'/var'");
+            pointer.Error.ShouldContain("'Integer'");
         }
 
         [Fact]
@@ -192,12 +189,10 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
         {
             JObject jObject = JObject.Parse("{ \"var\": 3 }");
 
-            var exception = Should.Throw<InvalidOperationException>(() =>
-            {
-                JTokenPointer.Get(jObject, "/var/bar");
-            });
+            var pointer = JTokenPointer.Get(jObject, "/var/bar");
 
-            exception.Message.ShouldContain("'/var/bar'");
+            pointer.IsFailure.ShouldBeTrue();
+            pointer.Error.ShouldContain("'/var/bar'");
         }
 
         [Fact]
@@ -207,7 +202,8 @@ namespace EdlinSoftware.JsonPatch.Tests.Pointers
 
             var pointer = JTokenPointer.Get(jObject, "/foo~1bar~0/7");
 
-            var jObjectPointer = pointer.ShouldBeOfType<JObjectPointer>();
+            pointer.IsSuccess.ShouldBeTrue();
+            var jObjectPointer = pointer.Value.ShouldBeOfType<JObjectPointer>();
 
             var (jObj, pathPart) = jObjectPointer;
 

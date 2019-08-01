@@ -1,14 +1,16 @@
 ﻿using System;
+using System.Diagnostics;
+using EdlinSoftware.JsonPatch.Utilities;
 using Newtonsoft.Json.Linq;
 
 namespace EdlinSoftware.JsonPatch.Pointers
 {
     internal abstract class JTokenPointer
     {
-        public static JTokenPointer Get(JToken token, JsonPointer path)
+        public static Result<JTokenPointer> Get(JToken token, JsonPointer path)
         {
             if(path.IsRootPointer)
-                return new JRootPointer();
+                return Result.Ok<JTokenPointer>(JRootPointer.Instance);
 
             foreach (JsonPointer.ReferenceToken referenceToken in path.GetReferenceTokensExceptLast())
             {
@@ -21,75 +23,89 @@ namespace EdlinSoftware.JsonPatch.Pointers
                         if (int.TryParse(referenceToken, out var arrayIndex))
                         {
                             if (arrayIndex < 0 || arrayIndex >= jArray.Count)
-                                throw new InvalidOperationException($"Unable to find index '{arrayIndex}' in an array at '{referenceToken.GetParentPointer()}'.");
+                                return Result.Fail<JTokenPointer>($"Unable to find index '{arrayIndex}' in an array at '{referenceToken.GetParentPointer()}'.");
                             token = jArray[arrayIndex];
                         }
                         else if (referenceToken == "-")
                         {
                             if (jArray.Count == 0)
-                                throw new InvalidOperationException($"Unable to find last element in an empty array at '{referenceToken.GetParentPointer()}'.");
+                                return Result.Fail<JTokenPointer>($"Unable to find last element in an empty array at '{referenceToken.GetParentPointer()}'.");
                             token = jArray[jArray.Count - 1];
                         }
                         else
                         {
-                            throw new InvalidOperationException($"Unable to find '{referenceToken}' property of an array at '{referenceToken.GetParentPointer()}'.");
+                            return Result.Fail<JTokenPointer>($"Unable to find '{referenceToken}' property of an array at '{referenceToken.GetParentPointer()}'.");
                         }
                         break;
                     default:
-                        throw new InvalidOperationException($"Value at '{referenceToken.GetParentPointer()}' is of primitive type '{token.Type}' and can't participate in a pointer.");
+                        return Result.Fail<JTokenPointer>($"Value at '{referenceToken.GetParentPointer()}' is of primitive type '{token.Type}' and can't participate in a pointer.");
                 }
 
                 if (token == null)
-                    throw new InvalidOperationException($"Unable to find path '{referenceToken.GetPointer()}'.");
+                    return Result.Fail<JTokenPointer>($"Unable to find path '{referenceToken.GetPointer()}'.");
             }
 
             switch (token)
             {
                 case JObject jObject:
-                    return new JObjectPointer(jObject, path.LastReferenceToken);
+                    return JObjectPointer.Get(jObject, path.LastReferenceToken).OnSuccess(p => (JTokenPointer) p);
                 case JArray jArray:
-                    return new JArrayPointer(jArray, path.LastReferenceToken);
+                    return JArrayPointer.Get(jArray, path.LastReferenceToken).OnSuccess(p => (JTokenPointer) p);
                 default:
-                    throw new InvalidOperationException($"Unable to build pointer for '{path.GetParentPointerForLastReferenceToken()}'.");
+                    return Result.Fail<JTokenPointer>($"Unable to build pointer for '{path.GetParentPointerForLastReferenceToken()}'.");
             }
         }
     }
 
-    internal class JRootPointer : JTokenPointer { }
+    internal class JRootPointer : JTokenPointer
+    {
+        public static readonly JRootPointer Instance = new JRootPointer();
+
+        [DebuggerStepThrough]
+        private JRootPointer() { }
+    }
 
     internal class JArrayPointer : JTokenPointer
     {
         private readonly JArray _jArray;
         private readonly string _pathPart;
 
-        public JArrayPointer(JArray jArray, JsonPointer.ReferenceToken pathPart)
+        private JArrayPointer(JArray jArray, JsonPointer.ReferenceToken pathPart)
         {
-            _jArray = jArray ?? throw new ArgumentNullException(nameof(jArray));
-            _pathPart = pathPart ?? throw new ArgumentNullException(nameof(pathPart));
-
-            if (_pathPart != "-")
-            {
-                if(!int.TryParse(_pathPart, out var arrayIndex))
-                    throw new InvalidOperationException($"Unable to find '{_pathPart}' property of an array at '{pathPart.GetParentPointer()}'.");
-
-                if (arrayIndex < 0 || arrayIndex > _jArray.Count)
-                    throw new InvalidOperationException($"Unable to find index '{arrayIndex}' in an array at '{pathPart.GetParentPointer()}'.");
-            }
+            _jArray = jArray;
+            _pathPart = pathPart;
         }
 
-        public JToken GetValue()
+        public static Result<JArrayPointer> Get(JArray jArray, JsonPointer.ReferenceToken pathPart)
+        {
+            if (jArray == null) throw new ArgumentNullException(nameof(jArray));
+            if (pathPart == null) throw new ArgumentNullException(nameof(pathPart));
+
+            if (pathPart != "-")
+            {
+                if (!int.TryParse(pathPart, out var arrayIndex))
+                    return Result.Fail<JArrayPointer>($"Unable to find '{pathPart}' property of an array at '{pathPart.GetParentPointer()}'.");
+
+                if (arrayIndex < 0 || arrayIndex > jArray.Count)
+                    return Result.Fail<JArrayPointer>($"Unable to find index '{arrayIndex}' in an array at '{pathPart.GetParentPointer()}'.");
+            }
+
+            return Result.Ok(new JArrayPointer(jArray, pathPart));
+        }
+
+        public Result<JToken> GetValue()
         {
             var arrayIndex = _pathPart == "-"
                 ? _jArray.Count - 1
                 : int.Parse(_pathPart);
 
             if (arrayIndex < 0 || arrayIndex >= _jArray.Count)
-                throw new InvalidOperationException($"Unable to get absent '{_pathPart}' element from an array.");
+                return Result.Fail<JToken>($"Unable to get absent '{_pathPart}' element from an array.");
 
-            return _jArray[arrayIndex];
+            return Result.Ok(_jArray[arrayIndex]);
         }
 
-        public void SetValue(JToken value)
+        public Result SetValue(JToken value)
         {
             if (_pathPart == "-")
             {
@@ -99,9 +115,11 @@ namespace EdlinSoftware.JsonPatch.Pointers
             {
                 _jArray.Insert(int.Parse(_pathPart), value);
             }
+
+            return Result.Ok();
         }
 
-        public void SetManyValues(JToken value)
+        public Result SetManyValues(JToken value)
         {
             if (value is JArray valueArray)
             {
@@ -113,23 +131,25 @@ namespace EdlinSoftware.JsonPatch.Pointers
                 {
                     _jArray.Insert(arrayIndex++, valueArrayItem);
                 }
+
+                return Result.Ok();
             }
-            else
-            {
-                SetValue(value);
-            }
+
+            return SetValue(value);
         }
 
-        public void RemoveValue()
+        public Result RemoveValue()
         {
             var arrayIndex = _pathPart == "-"
                 ? _jArray.Count - 1
                 : int.Parse(_pathPart);
 
             if(arrayIndex < 0 || arrayIndex >= _jArray.Count)
-                throw new InvalidOperationException($"Unable to remove absent '{_pathPart}' element from an array.");
+                return Result.Fail($"Unable to remove absent '{_pathPart}' element from an array.");
 
             _jArray.RemoveAt(arrayIndex);
+
+            return Result.Ok();
         }
 
         public void Deconstruct(out JArray jArray, out string pathPart)
@@ -144,31 +164,42 @@ namespace EdlinSoftware.JsonPatch.Pointers
         private readonly JObject _jObject;
         private readonly string _pathPart;
 
-        public JObjectPointer(JObject jObject, JsonPointer.ReferenceToken pathPart)
+        private JObjectPointer(JObject jObject, JsonPointer.ReferenceToken pathPart)
         {
-            _jObject = jObject ?? throw new ArgumentNullException(nameof(jObject));
-            _pathPart = pathPart ?? throw new ArgumentNullException(nameof(pathPart));
+            _jObject = jObject;
+            _pathPart = pathPart;
         }
 
-        public JToken GetValue()
+        public static Result<JObjectPointer> Get(JObject jObject, JsonPointer.ReferenceToken pathPart)
+        {
+            if (jObject == null) throw new ArgumentNullException(nameof(jObject));
+            if (pathPart == null) throw new ArgumentNullException(nameof(pathPart));
+
+            return Result.Ok(new JObjectPointer(jObject, pathPart));
+        }
+
+        public Result<JToken> GetValue()
         {
             if (!_jObject.ContainsKey(_pathPart))
-                throw new InvalidOperationException($"Unable to get absent value of '{_pathPart}' key from an object.");
+                return Result.Fail<JToken>($"Unable to get absent value of '{_pathPart}' key from an object.");
 
-            return _jObject[_pathPart];
+            return Result.Ok(_jObject[_pathPart]);
         }
 
-        public void SetValue(JToken value)
+        public Result SetValue(JToken value)
         {
             _jObject[_pathPart] = value;
+            return Result.Ok();
         }
 
-        public void RemoveValue()
+        public Result RemoveValue()
         {
             if(!_jObject.ContainsKey(_pathPart))
-                throw new InvalidOperationException($"Unable to remove absent '{_pathPart}' key from an object.");
+                return Result.Fail($"Unable to remove absent '{_pathPart}' key from an object.");
 
             _jObject.Remove(_pathPart);
+
+            return Result.Ok();
         }
 
         public void Deconstruct(out JObject jObject, out string pathPart)
