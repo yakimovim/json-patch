@@ -27,8 +27,16 @@ namespace EdlinSoftware.JsonPatch
             foreach (var jsonPatchDefinition in patchDefinitions)
             {
                 var result = jsonPatchDefinition.Apply(ref copy, serializer);
-                if(result.IsFailure)
-                    throw new JsonPatchException(result.Error);
+                if (result.IsFailure)
+                {
+                    var errorHandlingType =
+                        ((IErrorHandlingTypeProvider)jsonPatchDefinition).ErrorHandlingType
+                        ?? ErrorHandlingTypes.Throw;
+                    if (errorHandlingType == ErrorHandlingTypes.Throw)
+                    {
+                        throw new JsonPatchException(result.Error);
+                    }
+                }
             }
 
             return copy;

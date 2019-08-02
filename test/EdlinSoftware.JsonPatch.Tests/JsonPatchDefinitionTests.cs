@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using EdlinSoftware.JsonPatch.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shouldly;
@@ -18,6 +19,26 @@ namespace EdlinSoftware.JsonPatch.Tests
                     Value = null
                 },
                 "{\"op\":\"add\",\"path\":\"/var/boo\",\"value\":null}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddDefinition
+                {
+                    Path = "/var/boo",
+                    Value = null,
+                    ErrorHandlingType = ErrorHandlingTypes.Skip
+                },
+                "{\"op\":\"add\",\"path\":\"/var/boo\",\"onError\":\"skip\",\"value\":null}"
+            };
+            yield return new object[]
+            {
+                new JsonPatchAddDefinition
+                {
+                    Path = "/var/boo",
+                    Value = null,
+                    ErrorHandlingType = ErrorHandlingTypes.Throw
+                },
+                "{\"op\":\"add\",\"path\":\"/var/boo\",\"onError\":\"throw\",\"value\":null}"
             };
             yield return new object[]
             {
@@ -219,6 +240,20 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
+                "{\"op\":\"add\",\"path\":\"/var/boo\",\"onError\":\"skip\",\"value\":null}",
+                "/var/boo",
+                "null",
+                ErrorHandlingTypes.Skip
+            };
+            yield return new object[]
+            {
+                "{\"op\":\"add\",\"path\":\"/var/boo\",\"onError\":\"throw\",\"value\":null}",
+                "/var/boo",
+                "null",
+                ErrorHandlingTypes.Throw
+            };
+            yield return new object[]
+            {
                 "{\"op\":\"add\",\"path\":\"/var/boo\",\"value\":3}",
                 "/var/boo",
                 "3"
@@ -233,7 +268,11 @@ namespace EdlinSoftware.JsonPatch.Tests
 
         [Theory]
         [MemberData(nameof(GetDeserializationDataForAdd))]
-        public void Deserialize_AddPatch(string json, string expectedPath, string expectedJsonValue)
+        public void Deserialize_AddPatch(
+            string json,
+            string expectedPath,
+            string expectedJsonValue,
+            ErrorHandlingTypes? expectedErrorHandlingType = null)
         {
             var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
 
@@ -241,6 +280,7 @@ namespace EdlinSoftware.JsonPatch.Tests
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
+            patch.ErrorHandlingType.ShouldBe(expectedErrorHandlingType);
         }
 
         public static IEnumerable<object[]> GetDeserializationDataForAddMany()

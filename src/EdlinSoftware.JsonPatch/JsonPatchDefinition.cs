@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using EdlinSoftware.JsonPatch.Pointers;
@@ -37,8 +38,10 @@ namespace EdlinSoftware.JsonPatch
     /// Represents some Json patch definition.
     /// </summary>
     [JsonConverter(typeof(JsonPatchDefinitionConverter))]
-    public abstract class JsonPatchDefinition
+    public abstract class JsonPatchDefinition : IErrorHandlingTypeProvider
     {
+        protected ErrorHandlingTypes? ErrorHandlingTypeStorage;
+
         /// <summary>
         /// Path to the modification place.
         /// </summary>
@@ -56,6 +59,11 @@ namespace EdlinSoftware.JsonPatch
             writer.WriteValue(GetOperationName());
             writer.WritePropertyName("path");
             writer.WriteValue(Path.ToString());
+            if (ErrorHandlingTypeStorage.HasValue)
+            {
+                writer.WritePropertyName("onError");
+                writer.WriteValue(ErrorHandlingTypeStorage.Value.ToString().ToLowerInvariant());
+            }
             WriteAdditionalJsonProperties(writer, serializer);
             writer.WriteEndObject();
         }
@@ -84,7 +92,37 @@ namespace EdlinSoftware.JsonPatch
         internal void FillFromJson(JObject jObject)
         {
             Path = GetMandatoryPropertyValue<string>(jObject, "path");
+            ErrorHandlingTypeStorage = GetErrorHandlingType(jObject);
             FillAdditionalPropertiesFromJson(jObject);
+        }
+
+        /// <summary>
+        /// Returns value of error handling type from JSON object.
+        /// </summary>
+        /// <param name="jObject">JSON object.</param>
+        protected virtual ErrorHandlingTypes? GetErrorHandlingType(JObject jObject)
+        {
+            if (jObject.ContainsKey("onError"))
+            {
+                var onErrorValue = jObject.Value<string>("onError");
+                if (!Enum.TryParse(onErrorValue, true, out ErrorHandlingTypes errorHandlingType))
+                {
+                    var validErrorHandlingTypes = string.Join(
+                        ", ",
+                        Enum
+                            .GetNames(typeof(ErrorHandlingTypes))
+                            .Select(n => n.ToLowerInvariant())
+                            .Select(n => $"'{n}'")
+                            .ToArray()
+                    );
+                    throw new JsonPatchException(
+                        $"Value '{onErrorValue}' is not a valid value for 'onError' property. Valid values are: {validErrorHandlingTypes}");
+                }
+
+                return errorHandlingType;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -99,6 +137,11 @@ namespace EdlinSoftware.JsonPatch
         /// <param name="token">JSON token.</param>
         /// <param name="serializer">JSON serializer.</param>
         internal abstract Result Apply(ref JToken token, JsonSerializer serializer);
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        ErrorHandlingTypes? IErrorHandlingTypeProvider.ErrorHandlingType => ErrorHandlingTypeStorage;
     }
 
     [PatchType(JsonPatchTypes.Add)]
@@ -149,6 +192,17 @@ namespace EdlinSoftware.JsonPatch
                     throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
+        }
     }
 
     [PatchType(JsonPatchTypes.AddMany)]
@@ -188,6 +242,17 @@ namespace EdlinSoftware.JsonPatch
                     return Result.Fail("'addmany' patch should work only with arrays.");
             }
         }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
+        }
     }
 
     [PatchType(JsonPatchTypes.Remove)]
@@ -217,6 +282,17 @@ namespace EdlinSoftware.JsonPatch
                 default:
                     throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
+        }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
         }
     }
 
@@ -269,6 +345,17 @@ namespace EdlinSoftware.JsonPatch
                 default:
                     throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
+        }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
         }
     }
 
@@ -351,6 +438,17 @@ namespace EdlinSoftware.JsonPatch
                     return Result.Fail<JToken>("Can't move entire JSON");
             }
         }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
+        }
     }
 
     [PatchType(JsonPatchTypes.Copy)]
@@ -427,6 +525,17 @@ namespace EdlinSoftware.JsonPatch
                     throw new JsonPatchException(JsonPatchMessages.UnknownPathPointer);
             }
         }
+
+        /// <summary>
+        /// Error handling type for this patch definition.
+        /// </summary>
+        public ErrorHandlingTypes? ErrorHandlingType
+        {
+            [DebuggerStepThrough]
+            get => ErrorHandlingTypeStorage;
+            [DebuggerStepThrough]
+            set => ErrorHandlingTypeStorage = value;
+        }
     }
 
     [PatchType(JsonPatchTypes.Test)]
@@ -442,6 +551,12 @@ namespace EdlinSoftware.JsonPatch
         {
             writer.WritePropertyName("value");
             serializer.Serialize(writer, Value);
+        }
+
+        /// <inheritdoc />
+        protected override ErrorHandlingTypes? GetErrorHandlingType(JObject jObject)
+        {
+            return ErrorHandlingTypes.Throw;
         }
 
         /// <inheritdoc />
