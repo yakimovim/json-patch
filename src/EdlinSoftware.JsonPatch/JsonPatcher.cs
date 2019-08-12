@@ -47,7 +47,11 @@ namespace EdlinSoftware.JsonPatch
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
             JsonSerializerSettings serializerSettings)
         {
-            return PatchTokenCopy(initial, patchDefinitions, JsonSerializer.Create(serializerSettings));
+            return PatchTokenCopy(
+                initial,
+                patchDefinitions,
+                JsonSerializer.Create(serializerSettings)
+            );
         }
 
         public static T PatchObjectCopy<T>(
@@ -55,23 +59,25 @@ namespace EdlinSoftware.JsonPatch
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
             JsonSerializer serializer = null)
         {
-            var token = JToken.FromObject(obj);
+            serializer = serializer ?? JsonSerializer.CreateDefault();
+
+            var token = JToken.FromObject(obj, serializer);
 
             var patchedCopy = PatchTokenCopy(token, patchDefinitions, serializer);
 
-            return patchedCopy.ToObject<T>();
+            return patchedCopy.ToObject<T>(serializer);
         }
 
         public static T PatchObjectCopy<T>(
             T obj,
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
-            JsonSerializerSettings settings)
+            JsonSerializerSettings serializerSettings)
         {
-            var token = JToken.FromObject(obj);
-
-            var patchedCopy = PatchTokenCopy(token, patchDefinitions, settings);
-
-            return patchedCopy.ToObject<T>();
+            return PatchObjectCopy<T>(
+                obj,
+                patchDefinitions,
+                JsonSerializer.Create(serializerSettings)
+            );
         }
     }
 }

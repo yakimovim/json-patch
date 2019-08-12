@@ -14,6 +14,15 @@ namespace EdlinSoftware.JsonPatch.Tests
             obj.ShouldBeJson(JToken.Parse(expectedJson));
         }
 
+        public static void ShouldBeJson(this object obj, object expectedObject)
+        {
+            var actualToken = obj is JToken token ? token : JToken.FromObject(obj);
+
+            var expectedToken = expectedObject is JToken expToken ? expToken : JToken.FromObject(expectedObject);
+
+            obj.ShouldBeJson(expectedToken);
+        }
+
         public static void ShouldBeJson(this object obj, JToken expectedToken)
         {
             var actualToken = obj is JToken token ? token : JToken.FromObject(obj);
