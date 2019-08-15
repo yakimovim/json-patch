@@ -635,15 +635,22 @@ namespace EdlinSoftware.JsonPatch
                 .ToDictionary(t => t.PatchType, t => t.Type.AsType());
         }
 
-        public override void WriteJson(JsonWriter writer, JsonPatchDefinition value, JsonSerializer serializer)
+        public override void WriteJson(
+            JsonWriter writer,
+            JsonPatchDefinition value,
+            JsonSerializer serializer)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
 
             value.WriteToJson(writer, serializer);
         }
 
-        public override JsonPatchDefinition ReadJson(JsonReader reader, Type objectType, JsonPatchDefinition existingValue,
-            bool hasExistingValue, JsonSerializer serializer)
+        public override JsonPatchDefinition ReadJson(
+            JsonReader reader,
+            Type objectType,
+            JsonPatchDefinition existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer)
         {
             var token = JToken.ReadFrom(reader);
 
