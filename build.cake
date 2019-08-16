@@ -12,6 +12,7 @@ var configuration = Argument("configuration", "Release");
 
 // Define directories.
 var buildDir = Directory("./build") + Directory(configuration);
+var solutionFile = "./JsonPatch.sln";
 
 //////////////////////////////////////////////////////////////////////
 // TASKS
@@ -27,25 +28,20 @@ Task("Restore-NuGet-Packages")
     .IsDependentOn("Clean")
     .Does(() =>
 {
-    NuGetRestore("./JsonPatch.sln");
+    NuGetRestore(solutionFile);
 });
 
 Task("Build")
     .IsDependentOn("Restore-NuGet-Packages")
     .Does(() =>
 {
-    if(IsRunningOnWindows())
-    {
-      // Use MSBuild
-      MSBuild("./JsonPatch.sln", settings =>
-        settings.SetConfiguration(configuration));
-    }
-    else
-    {
-      // Use XBuild
-      XBuild("./JsonPatch.sln", settings =>
-        settings.SetConfiguration(configuration));
-    }
+    DotNetCoreBuild(
+        solutionFile,
+        new DotNetCoreBuildSettings {
+            Configuration = configuration,
+            OutputDirectory = buildDir
+        }
+    );
 });
 
 Task("Run-Unit-Tests")
@@ -55,12 +51,13 @@ Task("Run-Unit-Tests")
     var testProjects = GetFiles("./test/**/*.Tests.csproj");
     foreach(var testProject in testProjects)
     {
-        Information(testProject);
-        DotNetCoreTest(testProject.FullPath, new DotNetCoreTestSettings {
-            Configuration = configuration
-        });
+        DotNetCoreTest(
+            testProject.FullPath,
+            new DotNetCoreTestSettings {
+                Configuration = configuration
+            }
+        );
     }
-
 });
 
 //////////////////////////////////////////////////////////////////////
