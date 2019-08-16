@@ -108,7 +108,7 @@ namespace EdlinSoftware.JsonPatch.Utilities
         [DebuggerStepThrough]
         public static Result<T> Fail<T>(string error)
         {
-            return new Result<T>(true, default, error);
+            return new Result<T>(true, default(T), error);
         }
     }
 
