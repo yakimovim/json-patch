@@ -1,4 +1,4 @@
-#tool "nuget:?package=xunit.runner.console&version=2.4.1"
+#tool "nuget:?package=Brutal.Dev.StrongNameSigner&version=2.3.0"
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
 //////////////////////////////////////////////////////////////////////
@@ -60,12 +60,38 @@ Task("Run-Unit-Tests")
     }
 });
 
+Task("Sign-Strong-Name")
+    .IsDependentOn("Run-Unit-Tests")
+    .Does(() =>
+{
+    CleanDirectory(buildDir + Directory("Signed"));
+
+    var strongNameSignerExe = "./tools/Brutal.Dev.StrongNameSigner.2.3.0/build/StrongNameSigner.Console.exe";
+
+    using(var process = StartAndReturnProcess(strongNameSignerExe,
+        new ProcessSettings {
+            Arguments = $"-a \"{buildDir}/EdlinSoftware.JsonPatch.dll\" -k EdlinSoftware.snk -out \"{buildDir}/Signed\""
+        }))
+    {
+        process.WaitForExit();
+
+        // This should output 0 as valid arguments supplied
+        var exitCode = process.GetExitCode();
+        Information("Exit code: {0}", exitCode);
+
+        if(exitCode != 0)
+        {
+            throw new Exception("Unable to create strong name signed version of the assembly");
+        }
+    }
+});
+
 //////////////////////////////////////////////////////////////////////
 // TASK TARGETS
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
-    .IsDependentOn("Run-Unit-Tests");
+    .IsDependentOn("Sign-Strong-Name");
 
 //////////////////////////////////////////////////////////////////////
 // EXECUTION
