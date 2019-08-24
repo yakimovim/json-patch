@@ -12,7 +12,30 @@ var configuration = Argument("configuration", "Release");
 
 // Define directories.
 var buildDir = Directory("./build") + Directory(configuration);
+var nuGetDir = Directory("./nuget");
 var solutionFile = "./JsonPatch.sln";
+
+NuGetPackSettings CreateNuGetTemplate() {
+    return new NuGetPackSettings {
+        Version                 = "1.0.0",
+        Title                   = "EdlinSoftware JsonPatch library",
+        Authors                 = new[] { "Ivan Iakimov" },
+        // Owners                  = new[] {"Contoso"},
+        Description             = "Implementation of Json patch specification using Newtosoft Json library",
+        // Summary                 = "Excellent summary of what the package does",
+        ProjectUrl              = new Uri("https://github.com/yakimovim/json-patch"),
+        //IconUrl                 = new Uri("http://cdn.rawgit.com/SomeUser/TestNuGet/master/icons/testNuGet.png"),
+        LicenseUrl              = new Uri("https://raw.githubusercontent.com/yakimovim/json-patch/master/LICENSE"),
+        Copyright               = "EdlinSoftware 2019",
+        //ReleaseNotes            = new [] {"Bug fixes", "Issue fixes", "Typos"},
+        Tags                    = new [] { "JSON" },
+        RequireLicenseAcceptance= false,
+        Symbols                 = false,
+        NoPackageAnalysis       = true,
+        BasePath                = buildDir,
+        OutputDirectory         = nuGetDir
+    };
+}
 
 //////////////////////////////////////////////////////////////////////
 // TASKS
@@ -86,12 +109,41 @@ Task("Sign-Strong-Name")
     }
 });
 
+Task("NuGet")
+    .IsDependentOn("Sign-Strong-Name")
+    .Does(() =>
+{
+    CleanDirectory(nuGetDir);
+
+    // Create package with unsigned library
+    var nuGetPackSettings = CreateNuGetTemplate();
+    nuGetPackSettings.Id = "EdlinSoftware.JsonPatch";
+    nuGetPackSettings.Files = new [] {
+        new NuSpecContent {
+            Source = "EdlinSoftware.JsonPatch.dll",
+            Target = "bin"
+        },
+    };
+    NuGetPack(nuGetPackSettings);
+
+    // Create package with signed library
+    nuGetPackSettings = CreateNuGetTemplate();
+    nuGetPackSettings.Id = "EdlinSoftware.JsonPatch.Signed";
+    nuGetPackSettings.Files = new [] {
+        new NuSpecContent {
+            Source = "Signed/EdlinSoftware.JsonPatch.dll",
+            Target = "bin"
+        },
+    };
+    NuGetPack(nuGetPackSettings);
+});
+
 //////////////////////////////////////////////////////////////////////
 // TASK TARGETS
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
-    .IsDependentOn("Sign-Strong-Name");
+    .IsDependentOn("NuGet");
 
 //////////////////////////////////////////////////////////////////////
 // EXECUTION
