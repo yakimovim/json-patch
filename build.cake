@@ -17,7 +17,7 @@ var solutionFile = "./JsonPatch.sln";
 
 NuGetPackSettings CreateNuGetTemplate() {
     return new NuGetPackSettings {
-        Version                 = "1.0.0",
+        Version                 = "1.0.2",
         Title                   = "EdlinSoftware JsonPatch library",
         Authors                 = new[] { "Ivan Iakimov" },
         // Owners                  = new[] {"Contoso"},
@@ -33,7 +33,21 @@ NuGetPackSettings CreateNuGetTemplate() {
         Symbols                 = false,
         NoPackageAnalysis       = true,
         BasePath                = buildDir,
-        OutputDirectory         = nuGetDir
+        OutputDirectory         = nuGetDir,
+        Dependencies            = {
+            new NuSpecDependency {
+                Id = "NETStandard.Library",
+                Version = "1.6.1",
+                Exclude = new [] { "Build", "Analyzers" },
+                TargetFramework	= ".NETStandard1.2"
+            },
+            new NuSpecDependency {
+                Id = "Newtonsoft.Json",
+                Version = "12.0.2",
+                Exclude = new [] { "Build", "Analyzers" },
+                TargetFramework	= ".NETStandard1.2"
+            }
+        }
     };
 }
 
@@ -121,7 +135,7 @@ Task("NuGet")
     nuGetPackSettings.Files = new [] {
         new NuSpecContent {
             Source = "EdlinSoftware.JsonPatch.dll",
-            Target = "bin"
+            Target = "lib/netstandard1.2"
         },
     };
     NuGetPack(nuGetPackSettings);
@@ -132,7 +146,7 @@ Task("NuGet")
     nuGetPackSettings.Files = new [] {
         new NuSpecContent {
             Source = "Signed/EdlinSoftware.JsonPatch.dll",
-            Target = "bin"
+            Target = "lib/netstandard1.2"
         },
     };
     NuGetPack(nuGetPackSettings);
