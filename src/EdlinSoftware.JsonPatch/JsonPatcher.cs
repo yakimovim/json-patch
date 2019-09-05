@@ -16,7 +16,8 @@ namespace EdlinSoftware.JsonPatch
         public static JToken PatchTokenCopy(
             JToken initial,
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
-            JsonSerializer serializer = null)
+            JsonSerializer serializer = null,
+            ErrorHandlingTypes globalErrorHandling = ErrorHandlingTypes.Throw)
         {
             serializer = serializer ?? JsonSerializer.CreateDefault();
 
@@ -31,7 +32,7 @@ namespace EdlinSoftware.JsonPatch
                 {
                     var errorHandlingType =
                         ((IErrorHandlingTypeProvider)jsonPatchDefinition).ErrorHandlingType
-                        ?? ErrorHandlingTypes.Throw;
+                        ?? globalErrorHandling;
                     if (errorHandlingType == ErrorHandlingTypes.Throw)
                     {
                         throw new JsonPatchException(result.Error);
@@ -45,25 +46,28 @@ namespace EdlinSoftware.JsonPatch
         public static JToken PatchTokenCopy(
             JToken initial,
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
-            JsonSerializerSettings serializerSettings)
+            JsonSerializerSettings serializerSettings,
+            ErrorHandlingTypes globalErrorHandling = ErrorHandlingTypes.Throw)
         {
             return PatchTokenCopy(
                 initial,
                 patchDefinitions,
-                JsonSerializer.Create(serializerSettings)
+                JsonSerializer.Create(serializerSettings),
+                globalErrorHandling
             );
         }
 
         public static T PatchObjectCopy<T>(
             T obj,
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
-            JsonSerializer serializer = null)
+            JsonSerializer serializer = null,
+            ErrorHandlingTypes globalErrorHandling = ErrorHandlingTypes.Throw)
         {
             serializer = serializer ?? JsonSerializer.CreateDefault();
 
             var token = JToken.FromObject(obj, serializer);
 
-            var patchedCopy = PatchTokenCopy(token, patchDefinitions, serializer);
+            var patchedCopy = PatchTokenCopy(token, patchDefinitions, serializer, globalErrorHandling);
 
             return patchedCopy.ToObject<T>(serializer);
         }
@@ -71,12 +75,14 @@ namespace EdlinSoftware.JsonPatch
         public static T PatchObjectCopy<T>(
             T obj,
             IReadOnlyList<JsonPatchDefinition> patchDefinitions,
-            JsonSerializerSettings serializerSettings)
+            JsonSerializerSettings serializerSettings,
+            ErrorHandlingTypes globalErrorHandling = ErrorHandlingTypes.Throw)
         {
-            return PatchObjectCopy<T>(
+            return PatchObjectCopy(
                 obj,
                 patchDefinitions,
-                JsonSerializer.Create(serializerSettings)
+                JsonSerializer.Create(serializerSettings),
+                globalErrorHandling
             );
         }
     }

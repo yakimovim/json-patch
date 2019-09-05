@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using EdlinSoftware.JsonPatch.Utilities;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shouldly;
 using Xunit;
@@ -210,6 +211,59 @@ namespace EdlinSoftware.JsonPatch.Tests
             // Assert
             output.ShouldNotBeNull();
             output.ToString().ShouldBe(PersonData.GetStringPresentation("Ivan", 41));
+        }
+
+        [Fact]
+        public void PatchTokenCopy_UsesGlobalErrorHandling()
+        {
+            // Arrange
+            var input = JToken.Parse("[]");
+
+            // Act
+            var output = JsonPatcher.PatchTokenCopy(
+                input,
+                new[]
+                {
+                    new JsonPatchAddDefinition
+                    {
+                        Path = "/xxx",
+                        Value = 41
+                    }
+                },
+                globalErrorHandling: ErrorHandlingTypes.Skip);
+
+            // Assert
+            JToken.DeepEquals(
+                input,
+                output
+                ).ShouldBeTrue();
+        }
+
+        [Fact]
+        public void PatchObjectCopy_UsesGlobalErrorHandling()
+        {
+            // Arrange
+            var input = new PersonData("Ivan", 40);
+
+            var serializationSettings = GetSerializerSettingsForPersonData();
+
+            // Act
+            var output = JsonPatcher.PatchObjectCopy(
+                input,
+                new[]
+                {
+                    new JsonPatchReplaceDefinition
+                    {
+                        Path = "/xxx",
+                        Value = 41
+                    }
+                },
+                serializationSettings,
+                globalErrorHandling: ErrorHandlingTypes.Skip);
+
+            // Assert
+            output.ShouldNotBeNull();
+            output.ToString().ShouldBe(PersonData.GetStringPresentation("Ivan", 40));
         }
 
         private static JsonSerializerSettings GetSerializerSettingsForPersonData()
