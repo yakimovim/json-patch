@@ -1,10 +1,12 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/948byb9nflk2e7fa/branch/master?svg=true)](https://ci.appveyor.com/project/IvanIakimov/json-patch/branch/master)
+
 # Json Patch implementation
 
 This library contains [Json Patch](http://jsonpatch.com) implementation using [Newtonsoft.Json](https://www.newtonsoft.com/json).
 
 ## Usage
 
-The library contains two modes. In the first one you can patch `JToken` objects using `PatchTokenCopy` method:
+The library supports two modes. In the first one you can patch `JToken` objects using `PatchTokenCopy` method:
 
 ```cs
 var input = JToken.Parse("{ \"age\": 40 }");
@@ -49,7 +51,7 @@ Be aware, that the library never modifies input object.
 
 ## Serialization settings
 
-In `JsonPatch` library you can use POCO objects in two places. First of all, you can patch them, as you saw in the previous example. But also you can  use them as values of patch definitions:
+In `JsonPatch` library, you can use POCO objects in two places. First of all, you can patch them, as you saw in the previous example. But also you can  use them as values of patch definitions:
 
 ```cs
 var patchDefinition = new JsonPatchAddDefinition
@@ -59,7 +61,7 @@ var patchDefinition = new JsonPatchAddDefinition
     };
 ```
 
-In both cases it is quite possible that your objects can contain custom serializations settings. You can respect these settings by passing either `JsonSerializer` or `JsonSerializerSettings` object into `PatchTokenCopy` and `PatchObjectCopy` methods:
+In both cases, it is quite possible that your objects can contain custom serializations settings. You can respect these settings by passing either `JsonSerializer` or `JsonSerializerSettings` object into `PatchTokenCopy` and `PatchObjectCopy` methods:
 
 ```cs
 var input = JToken.Parse("[]");
@@ -88,4 +90,73 @@ JToken.DeepEquals(
 
  [Json Patch](http://jsonpatch.com) specification says that patching should stop on any error. And this is a default behaviour of the library. In case any operation can't be fulfilled, `JsonPatchException` exception will be thrown.
 
- 
+But you can customize this behavior. Almost every class of patch definition contains `ErrorHandlingType` property.
+
+```cs
+var patch = new JsonPatchMoveDefinition
+{
+    Path = "/bar",
+    From = "/foo",
+    ErrorHandlingType = ErrorHandlingTypes.Skip
+};
+```
+
+This property can have one of the following values:
+
+* `null`. Default. In this case, if the patch can't be applied default error handling behavior will be applied. Read about it later.
+* `Skip`. In this case, if the patch can't be applied, nothing happens and the next patch will be processed.
+* `Throw`. In this case, if the patch can't be applied a `JsonPatchException` exception will be thrown.
+
+Be aware, that `JsonPatchTestDefinition` does not have this property. If the test is failed, an exception will always be thrown.
+
+You can set default error handling behavior by setting `globalErrorHandling` parameter in the `PatchTokenCopy` and `PatchObjectCopy` methods of `JsonPatcher` class:
+
+```cs
+var output = JsonPatcher.PatchObjectCopy(
+    input,
+    new[]
+    {
+        new JsonPatchReplaceDefinition
+        {
+            Path = "/xxx",
+            Value = 41
+        }
+    },
+    serializationSettings,
+    globalErrorHandling: ErrorHandlingTypes.Skip);
+```
+
+## Patch definitions
+
+[Json Patch](http://jsonpatch.com) specification provides 6 patch operations:
+
+* `Add`
+* `Move`
+* `Replace`
+* `Remove`
+* `Test`
+* `Copy`
+
+All of them are supported in the library. But the library provides one more additional operation: `AddMany`. For this operation 'Path' property must point to a place in an array. `Value` property may be anything. But if it is an array, then each value of this array will be inserted into the `Path` array.
+
+Here is the difference between `Add` and `AddMany` operations. Let's say we want to patch JSON `[1, 2, 3]`. In the case of `Add` operation:
+
+```json
+{
+    "op": "add",
+    "path": "/-",
+    "value": [4, 5, 6]
+}
+```
+
+result will be `[1, 2, 3, [4, 5, 6]]`. But in the case of 'AddMany' operation:
+
+```json
+{
+    "op": "addmany",
+    "path": "/-",
+    "value": [4, 5, 6]
+}
+```
+
+result will be `[1, 2, 3, 4, 5, 6]`.
