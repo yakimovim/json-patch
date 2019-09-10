@@ -17,14 +17,14 @@ var solutionFile = "./JsonPatch.sln";
 
 NuGetPackSettings CreateNuGetTemplate() {
     return new NuGetPackSettings {
-        Version                 = "1.0.2",
+        Version                 = "1.0.3",
         Title                   = "EdlinSoftware JsonPatch library",
         Authors                 = new[] { "Ivan Iakimov" },
         // Owners                  = new[] {"Contoso"},
         Description             = "Implementation of Json patch specification using Newtosoft Json library",
-        // Summary                 = "Excellent summary of what the package does",
+        Summary                 = "This library allows to apply JSON patch operations to Jtoken objects or to POCO objects",
         ProjectUrl              = new Uri("https://github.com/yakimovim/json-patch"),
-        //IconUrl                 = new Uri("http://cdn.rawgit.com/SomeUser/TestNuGet/master/icons/testNuGet.png"),
+        IconUrl                 = new Uri("https://raw.githubusercontent.com/yakimovim/json-patch/master/json.png"),
         LicenseUrl              = new Uri("https://raw.githubusercontent.com/yakimovim/json-patch/master/LICENSE"),
         Copyright               = "EdlinSoftware 2019",
         //ReleaseNotes            = new [] {"Bug fixes", "Issue fixes", "Typos"},
