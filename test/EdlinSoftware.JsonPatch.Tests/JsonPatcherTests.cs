@@ -17,7 +17,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/var",
                         Value = JToken.Parse("3")
@@ -39,7 +39,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/Name",
                         Value = "Ivan"
@@ -62,7 +62,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/-",
                         Value = new PersonData("Ivan", 40)
@@ -90,7 +90,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/-",
                         Value = new PersonData("Ivan", 40)
@@ -118,7 +118,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/-",
                         Value = new PersonData("Ivan", 40)
@@ -146,7 +146,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/-",
                         Value = new PersonData("Ivan", 40)
@@ -174,7 +174,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchReplaceDefinition
+                    new JsonPatchReplaceOperation
                     {
                         Path = "/age",
                         Value = 41
@@ -200,7 +200,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchReplaceDefinition
+                    new JsonPatchReplaceOperation
                     {
                         Path = "/age",
                         Value = 41
@@ -224,7 +224,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchAddDefinition
+                    new JsonPatchAddOperation
                     {
                         Path = "/xxx",
                         Value = 41
@@ -252,7 +252,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 input,
                 new[]
                 {
-                    new JsonPatchReplaceDefinition
+                    new JsonPatchReplaceOperation
                     {
                         Path = "/xxx",
                         Value = 41

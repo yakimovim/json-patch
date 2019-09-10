@@ -9,13 +9,13 @@ namespace EdlinSoftware.JsonPatch.Utilities
 {
     using static JsonOperations;
 
-    public sealed class JsonPatchDefinitionConverter : JsonConverter<JsonPatchDefinition>
+    public sealed class JsonPatchOperationConverter : JsonConverter<JsonPatchOperation>
     {
         private static readonly IReadOnlyDictionary<JsonPatchTypes, Type> KnownJsonPatchTypes;
 
-        static JsonPatchDefinitionConverter()
+        static JsonPatchOperationConverter()
         {
-            var jsonPatchBaseType = typeof(JsonPatchDefinition);
+            var jsonPatchBaseType = typeof(JsonPatchOperation);
 
             KnownJsonPatchTypes = jsonPatchBaseType
                 .GetTypeInfo()
@@ -39,7 +39,7 @@ namespace EdlinSoftware.JsonPatch.Utilities
 
         public override void WriteJson(
             JsonWriter writer,
-            JsonPatchDefinition value,
+            JsonPatchOperation value,
             JsonSerializer serializer)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
@@ -47,23 +47,23 @@ namespace EdlinSoftware.JsonPatch.Utilities
             value.WriteToJson(writer, serializer);
         }
 
-        public override JsonPatchDefinition ReadJson(
+        public override JsonPatchOperation ReadJson(
             JsonReader reader,
             Type objectType,
-            JsonPatchDefinition existingValue,
+            JsonPatchOperation existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
             var token = JToken.ReadFrom(reader);
 
-            if (token == null) throw new JsonPatchException("There is no patch definition.");
+            if (token == null) throw new JsonPatchException("There is no patch operation.");
 
-            if (token.Type != JTokenType.Object) throw new JsonPatchException(JsonPatchMessages.PatchDefinitionShouldBeJsonObject);
+            if (token.Type != JTokenType.Object) throw new JsonPatchException(JsonPatchMessages.PatchOperationShouldBeJsonObject);
 
-            JObject patchDefinitionJObject = token as JObject;
-            if (patchDefinitionJObject == null) throw new JsonPatchException(JsonPatchMessages.PatchDefinitionShouldBeJsonObject);
+            JObject patchOperationJObject = token as JObject;
+            if (patchOperationJObject == null) throw new JsonPatchException(JsonPatchMessages.PatchOperationShouldBeJsonObject);
 
-            var operation = GetMandatoryPropertyValue<string>(patchDefinitionJObject, "op") ?? "";
+            var operation = GetMandatoryPropertyValue<string>(patchOperationJObject, "op") ?? "";
 
             var patchType = (JsonPatchTypes)Enum.Parse(typeof(JsonPatchTypes), operation, ignoreCase: true);
             if (!Enum.IsDefined(typeof(JsonPatchTypes), patchType))
@@ -72,9 +72,9 @@ namespace EdlinSoftware.JsonPatch.Utilities
             if (!KnownJsonPatchTypes.TryGetValue(patchType, out var jsonPatchType))
                 throw new JsonPatchException($"Patch operation '{operation}' is not supported");
 
-            var jsonPatchDefinition = (JsonPatchDefinition)Activator.CreateInstance(jsonPatchType);
-            jsonPatchDefinition.FillFromJson(patchDefinitionJObject);
-            return jsonPatchDefinition;
+            var jsonPatchOperation = (JsonPatchOperation)Activator.CreateInstance(jsonPatchType);
+            jsonPatchOperation.FillFromJson(patchOperationJObject);
+            return jsonPatchOperation;
         }
     }
 

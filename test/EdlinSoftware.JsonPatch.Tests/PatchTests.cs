@@ -43,16 +43,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddPatchData_Success))]
         public void Add_Success(object input, string path, object value, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -67,16 +67,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddPatchData_Failure_Throw))]
         public void Add_Failure_Throw(object input, string path, object value, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -94,9 +94,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddPatchData_Failure_Skip))]
         public void Add_Failure_Skip(object input, string path, object value)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = path,
                     Value = value,
@@ -104,7 +104,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -134,16 +134,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddManyPatchData_Success))]
         public void AddMany_Success(object input, string path, object value, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -160,16 +160,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddManyPatchData_Failure_Throw))]
         public void AddMany_Failure_Throw(object input, string path, object value, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -189,9 +189,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetAddManyPatchData_Failure_Skip))]
         public void AddMany_Failure_Skip(object input, string path, object value)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = path,
                     Value = value,
@@ -199,7 +199,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -219,15 +219,15 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetRemovePatchData_Success))]
         public void Remove_Success(object input, string path, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchRemoveDefinition
+                new JsonPatchRemoveOperation
                 {
                     Path = path
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -244,15 +244,15 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetRemovePatchData_Failure_Throw))]
         public void Remove_Failure_Throw(object input, string path, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchRemoveDefinition
+                new JsonPatchRemoveOperation
                 {
                     Path = path
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -272,16 +272,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetRemovePatchData_Failure_Skip))]
         public void Remove_Failure_Skip(object input, string path)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchRemoveDefinition
+                new JsonPatchRemoveOperation
                 {
                     Path = path,
                     ErrorHandlingType = ErrorHandlingTypes.Skip
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -311,16 +311,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetReplacePatchData_Success))]
         public void Replace_Success(object input, string path, object value, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -337,16 +337,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetReplacePatchData_Failure_Throw))]
         public void Replace_Failure_Throw(object input, string path, object value, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -366,9 +366,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetReplacePatchData_Failure_Skip))]
         public void Replace_Failure_Skip(object input, string path, object value)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = path,
                     Value = value,
@@ -376,7 +376,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -396,16 +396,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetMovePatchData_Success))]
         public void Move_Success(object input, string from, string path, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchMoveDefinition
+                new JsonPatchMoveOperation
                 {
                     Path = path,
                     From = from
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -427,16 +427,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetMovePatchData_Failure_Throw))]
         public void Move_Failure_Throw(object input, string from, string path, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchMoveDefinition
+                new JsonPatchMoveOperation
                 {
                     Path = path,
                     From = from
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -461,9 +461,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetMovePatchData_Failure_Skip))]
         public void Move_Failure_Skip(object input, string from, string path)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchMoveDefinition
+                new JsonPatchMoveOperation
                 {
                     Path = path,
                     From = from,
@@ -471,7 +471,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -499,16 +499,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetCopyPatchData_Success))]
         public void Copy_Success(object input, string from, string path, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchCopyDefinition
+                new JsonPatchCopyOperation
                 {
                     Path = path,
                     From = from
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -527,16 +527,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetCopyPatchData_Failure_Throw))]
         public void Copy_Failure_Throw(object input, string from, string path, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchCopyDefinition
+                new JsonPatchCopyOperation
                 {
                     Path = path,
                     From = from
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {
@@ -558,9 +558,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetCopyPatchData_Failure_Skip))]
         public void Copy_Failure_Skip(object input, string from, string path)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchCopyDefinition
+                new JsonPatchCopyOperation
                 {
                     Path = path,
                     From = from,
@@ -568,7 +568,7 @@ namespace EdlinSoftware.JsonPatch.Tests
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             input.ShouldBeJson(output);
         }
@@ -594,16 +594,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetTestPatchData_Success))]
         public void Test_Success(object input, string path, object value, string expectedJson)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var output = Patch(input, patchDefinitions);
+            var output = Patch(input, patchOperations);
 
             output.ShouldBeJson(expectedJson);
         }
@@ -620,16 +620,16 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetTestPatchData_Failure_Throw))]
         public void Test_Failure_Throw(object input, string path, object value, params string[] expectedMessageParts)
         {
-            var patchDefinitions = new JsonPatchDefinition[]
+            var patchOperations = new JsonPatchOperation[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = path,
                     Value = value
                 }
             };
 
-            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchDefinitions); });
+            var exception = Assert.Throws<JsonPatchException>(() => { Patch(input, patchOperations); });
 
             foreach (var expectedMessagePart in expectedMessageParts)
             {

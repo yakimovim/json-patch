@@ -34,10 +34,10 @@ namespace EdlinSoftware.JsonPatch
     }
 
     /// <summary>
-    /// Represents some Json patch definition.
+    /// Represents some Json patch operation.
     /// </summary>
-    [JsonConverter(typeof(JsonPatchDefinitionConverter))]
-    public abstract class JsonPatchDefinition : IErrorHandlingTypeProvider
+    [JsonConverter(typeof(JsonPatchOperationConverter))]
+    public abstract class JsonPatchOperation : IErrorHandlingTypeProvider
     {
         protected ErrorHandlingTypes? ErrorHandlingTypeStorage;
 
@@ -138,13 +138,13 @@ namespace EdlinSoftware.JsonPatch
         internal abstract Result Apply(ref JToken token, JsonSerializer serializer);
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         ErrorHandlingTypes? IErrorHandlingTypeProvider.ErrorHandlingType => ErrorHandlingTypeStorage;
     }
 
     [PatchType(JsonPatchTypes.Add)]
-    public sealed class JsonPatchAddDefinition : JsonPatchDefinition
+    public sealed class JsonPatchAddOperation : JsonPatchOperation
     {
         /// <summary>
         /// Value to add.
@@ -193,7 +193,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -205,7 +205,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.AddMany)]
-    public sealed class JsonPatchAddManyDefinition : JsonPatchDefinition
+    public sealed class JsonPatchAddManyOperation : JsonPatchOperation
     {
         /// <summary>
         /// Value to add.
@@ -243,7 +243,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -255,7 +255,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.Remove)]
-    public sealed class JsonPatchRemoveDefinition : JsonPatchDefinition
+    public sealed class JsonPatchRemoveOperation : JsonPatchOperation
     {
         /// <inheritdoc />
         internal override Result Apply(ref JToken token, JsonSerializer serializer)
@@ -284,7 +284,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -296,7 +296,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.Replace)]
-    public sealed class JsonPatchReplaceDefinition : JsonPatchDefinition
+    public sealed class JsonPatchReplaceOperation : JsonPatchOperation
     {
         /// <summary>
         /// Value to replace.
@@ -347,7 +347,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -359,7 +359,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.Move)]
-    public sealed class JsonPatchMoveDefinition : JsonPatchDefinition
+    public sealed class JsonPatchMoveOperation : JsonPatchOperation
     {
         /// <summary>
         /// JSON pointer to the place to take value from.
@@ -439,7 +439,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -451,7 +451,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.Copy)]
-    public sealed class JsonPatchCopyDefinition : JsonPatchDefinition
+    public sealed class JsonPatchCopyOperation : JsonPatchOperation
     {
         /// <summary>
         /// JSON pointer to the place to take value from.
@@ -526,7 +526,7 @@ namespace EdlinSoftware.JsonPatch
         }
 
         /// <summary>
-        /// Error handling type for this patch definition.
+        /// Error handling type for this patch operation.
         /// </summary>
         public ErrorHandlingTypes? ErrorHandlingType
         {
@@ -538,7 +538,7 @@ namespace EdlinSoftware.JsonPatch
     }
 
     [PatchType(JsonPatchTypes.Test)]
-    public sealed class JsonPatchTestDefinition : JsonPatchDefinition
+    public sealed class JsonPatchTestOperation : JsonPatchOperation
     {
         /// <summary>
         /// Value to replace.
@@ -608,11 +608,11 @@ namespace EdlinSoftware.JsonPatch
 
     internal static class JsonOperations
     {
-        public static T GetMandatoryPropertyValue<T>(JObject patchDefinitionJObject, string propertyName)
+        public static T GetMandatoryPropertyValue<T>(JObject patchOperationJObject, string propertyName)
         {
-            if (!patchDefinitionJObject.ContainsKey(propertyName)) throw new JsonPatchException($"Patch definition must contain '{propertyName}' property");
+            if (!patchOperationJObject.ContainsKey(propertyName)) throw new JsonPatchException($"Patch operation must contain '{propertyName}' property");
 
-            return patchDefinitionJObject.Value<T>(propertyName);
+            return patchOperationJObject.Value<T>(propertyName);
         }
     }
 

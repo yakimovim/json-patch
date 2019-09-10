@@ -7,13 +7,13 @@ using Xunit;
 
 namespace EdlinSoftware.JsonPatch.Tests
 {
-    public class JsonPatchDefinitionTests
+    public class JsonPatchOperationTests
     {
         public static IEnumerable<object[]> GetSerializationData()
         {
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = null
@@ -22,7 +22,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = null,
@@ -32,7 +32,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = null,
@@ -42,7 +42,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = 3
@@ -51,7 +51,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = new { skip = 30 }
@@ -60,7 +60,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddDefinition
+                new JsonPatchAddOperation
                 {
                     Path = "/var/boo",
                     Value = JToken.Parse("{\"skip\":30}")
@@ -69,7 +69,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchRemoveDefinition()
+                new JsonPatchRemoveOperation()
                 {
                     Path = "/var/boo",
                 },
@@ -77,7 +77,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = "/var/boo",
                     Value = null
@@ -86,7 +86,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = "/var/boo",
                     Value = 3
@@ -95,7 +95,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = "/var/boo",
                     Value = new { skip = 30 }
@@ -104,7 +104,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchReplaceDefinition
+                new JsonPatchReplaceOperation
                 {
                     Path = "/var/boo",
                     Value = JToken.Parse("{\"skip\":30}")
@@ -113,7 +113,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchMoveDefinition
+                new JsonPatchMoveOperation
                 {
                     From = "/foo/bar",
                     Path = "/var/boo"
@@ -122,7 +122,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchCopyDefinition
+                new JsonPatchCopyOperation
                 {
                     From = "/foo/bar",
                     Path = "/var/boo"
@@ -131,7 +131,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = "/var/boo",
                     Value = null
@@ -140,7 +140,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = "/var/boo",
                     Value = 3
@@ -149,7 +149,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = "/var/boo",
                     Value = new { skip = 3 }
@@ -158,7 +158,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchTestDefinition
+                new JsonPatchTestOperation
                 {
                     Path = "/var/boo",
                     Value = JToken.Parse("{\"skip\":3}")
@@ -167,7 +167,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = null
@@ -176,7 +176,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = 3
@@ -185,7 +185,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = new { skip = 30 }
@@ -194,7 +194,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = JToken.Parse("{\"skip\":30}")
@@ -203,7 +203,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = JToken.Parse("[1,2,3]")
@@ -212,7 +212,7 @@ namespace EdlinSoftware.JsonPatch.Tests
             };
             yield return new object[]
             {
-                new JsonPatchAddManyDefinition
+                new JsonPatchAddManyOperation
                 {
                     Path = "/var/boo",
                     Value = new[] {1, 2, 3}
@@ -223,9 +223,9 @@ namespace EdlinSoftware.JsonPatch.Tests
 
         [Theory]
         [MemberData(nameof(GetSerializationData))]
-        public void Serialize(JsonPatchDefinition patchDefinition, string expectedResult)
+        public void Serialize(JsonPatchOperation patchOperation, string expectedResult)
         {
-            var actualResult = JsonConvert.SerializeObject(patchDefinition);
+            var actualResult = JsonConvert.SerializeObject(patchOperation);
 
             JsonStringsAreEqual(expectedResult, actualResult);
         }
@@ -274,9 +274,9 @@ namespace EdlinSoftware.JsonPatch.Tests
             string expectedJsonValue,
             ErrorHandlingTypes? expectedErrorHandlingType = null)
         {
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchAddDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchAddOperation>();
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
@@ -315,9 +315,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetDeserializationDataForAddMany))]
         public void Deserialize_AddManyPatch(string json, string expectedPath, string expectedJsonValue)
         {
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchAddManyDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchAddManyOperation>();
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
@@ -328,9 +328,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         {
             var json = "{\"op\":\"remove\",\"path\":\"/var/boo\"}";
 
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchRemoveDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchRemoveOperation>();
 
             patch.Path.ShouldBe("/var/boo");
         }
@@ -361,9 +361,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetDeserializationDataForReplace))]
         public void Deserialize_ReplacePatch(string json, string expectedPath, string expectedJsonValue)
         {
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchReplaceDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchReplaceOperation>();
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);
@@ -374,9 +374,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         {
             var json = "{\"op\":\"move\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}";
 
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchMoveDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchMoveOperation>();
 
             patch.Path.ShouldBe("/var/boo");
             patch.From.ShouldBe("/foo/bar");
@@ -387,9 +387,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         {
             var json = "{\"op\":\"copy\",\"path\":\"/var/boo\",\"from\":\"/foo/bar\"}";
 
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchCopyDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchCopyOperation>();
 
             patch.Path.ShouldBe("/var/boo");
             patch.From.ShouldBe("/foo/bar");
@@ -421,9 +421,9 @@ namespace EdlinSoftware.JsonPatch.Tests
         [MemberData(nameof(GetDeserializationDataForTest))]
         public void Deserialize_TestPatch(string json, string expectedPath, string expectedJsonValue)
         {
-            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchDefinition>(json);
+            var jsonPatch = JsonConvert.DeserializeObject<JsonPatchOperation>(json);
 
-            var patch = jsonPatch.ShouldBeOfType<JsonPatchTestDefinition>();
+            var patch = jsonPatch.ShouldBeOfType<JsonPatchTestOperation>();
 
             patch.Path.ShouldBe(expectedPath);
             ValueShouldBeEqualTo(patch.Value, expectedJsonValue);

@@ -15,7 +15,7 @@ var output = JsonPatcher.PatchTokenCopy(
     input,
     new[]
     {
-        new JsonPatchReplaceDefinition
+        new JsonPatchReplaceOperation
         {
             Path = "/age",
             Value = 41
@@ -37,7 +37,7 @@ var output = JsonPatcher.PatchObjectCopy(
     input,
     new[]
     {
-        new JsonPatchAddDefinition
+        new JsonPatchAddOperation
         {
             Path = "/Name",
             Value = "Ivan"
@@ -51,10 +51,10 @@ Be aware, that the library never modifies input object.
 
 ## Serialization settings
 
-In `JsonPatch` library, you can use POCO objects in two places. First of all, you can patch them, as you saw in the previous example. But also you can  use them as values of patch definitions:
+In `JsonPatch` library, you can use POCO objects in two places. First of all, you can patch them, as you saw in the previous example. But also you can use them as values of patch operations:
 
 ```cs
-var patchDefinition = new JsonPatchAddDefinition
+var patchOperation = new JsonPatchAddOperation
     {
         Path = "/-",
         Value = new PersonData("Ivan", 40)
@@ -72,7 +72,7 @@ var output = JsonPatcher.PatchTokenCopy(
     input,
     new[]
     {
-        new JsonPatchAddDefinition
+        new JsonPatchAddOperation
         {
             Path = "/-",
             Value = new PersonData("Ivan", 40)
@@ -90,10 +90,10 @@ JToken.DeepEquals(
 
  [Json Patch](http://jsonpatch.com) specification says that patching should stop on any error. And this is a default behaviour of the library. In case any operation can't be fulfilled, `JsonPatchException` exception will be thrown.
 
-But you can customize this behavior. Almost every class of patch definition contains `ErrorHandlingType` property.
+But you can customize this behavior. Almost every class of patch operation contains `ErrorHandlingType` property.
 
 ```cs
-var patch = new JsonPatchMoveDefinition
+var patch = new JsonPatchMoveOperation
 {
     Path = "/bar",
     From = "/foo",
@@ -107,7 +107,7 @@ This property can have one of the following values:
 * `Skip`. In this case, if the patch can't be applied, nothing happens and the next patch will be processed.
 * `Throw`. In this case, if the patch can't be applied a `JsonPatchException` exception will be thrown.
 
-Be aware, that `JsonPatchTestDefinition` does not have this property. If the test is failed, an exception will always be thrown.
+Be aware, that `JsonPatchTestOperation` does not have this property. If the test is failed, an exception will always be thrown.
 
 You can set default error handling behavior by setting `globalErrorHandling` parameter in the `PatchTokenCopy` and `PatchObjectCopy` methods of `JsonPatcher` class:
 
@@ -116,7 +116,7 @@ var output = JsonPatcher.PatchObjectCopy(
     input,
     new[]
     {
-        new JsonPatchReplaceDefinition
+        new JsonPatchReplaceOperation
         {
             Path = "/xxx",
             Value = 41
@@ -126,7 +126,7 @@ var output = JsonPatcher.PatchObjectCopy(
     globalErrorHandling: ErrorHandlingTypes.Skip);
 ```
 
-## Patch definitions
+## Patch operations
 
 [Json Patch](http://jsonpatch.com) specification provides 6 patch operations:
 

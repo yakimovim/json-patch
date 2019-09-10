@@ -22,6 +22,6 @@ namespace EdlinSoftware.JsonPatch.Utilities
     internal static class JsonPatchMessages
     {
         public static readonly string UnknownPathPointer = "Unknown type of path pointer.";
-        public static readonly string PatchDefinitionShouldBeJsonObject = "Patch definition should be a Json object.";
+        public static readonly string PatchOperationShouldBeJsonObject = "Patch operation should be a Json object.";
     }
 }

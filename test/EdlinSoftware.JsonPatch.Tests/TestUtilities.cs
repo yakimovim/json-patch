@@ -35,11 +35,11 @@ namespace EdlinSoftware.JsonPatch.Tests
             jsonPointer.ToString().ShouldBe(expectedValue);
         }
 
-        public static object Patch(object input, IReadOnlyList<JsonPatchDefinition> patchDefinitions)
+        public static object Patch(object input, IReadOnlyList<JsonPatchOperation> patchOperations)
         {
             return input is JToken inputToken
-                ? JsonPatcher.PatchTokenCopy(inputToken, patchDefinitions)
-                : JsonPatcher.PatchObjectCopy(input, patchDefinitions);
+                ? JsonPatcher.PatchTokenCopy(inputToken, patchOperations)
+                : JsonPatcher.PatchObjectCopy(input, patchOperations);
         }
     }
 }
