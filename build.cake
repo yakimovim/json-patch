@@ -22,7 +22,7 @@ NuGetPackSettings CreateNuGetTemplate() {
         Authors                 = new[] { "Ivan Iakimov" },
         // Owners                  = new[] {"Contoso"},
         Description             = "Implementation of Json patch specification using Newtosoft Json library",
-        Summary                 = "This library allows to apply JSON patch operations to Jtoken objects or to POCO objects",
+        Summary                 = "This library allows to apply JSON patch operations to JToken objects or to POCO objects",
         ProjectUrl              = new Uri("https://github.com/yakimovim/json-patch"),
         IconUrl                 = new Uri("https://raw.githubusercontent.com/yakimovim/json-patch/master/json.png"),
         LicenseUrl              = new Uri("https://raw.githubusercontent.com/yakimovim/json-patch/master/LICENSE"),
